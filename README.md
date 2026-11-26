@@ -70,6 +70,13 @@ flowchart LR
 | **RAID** | Finds *new* risks/issues not already in the log | Up to 4 RAID items |
 | **Comms** | Sponsor update email, called last, using the others' findings | Subject + body |
 
+## Also in this repo
+
+| Agent | What the PM gives it | What it proposes | Status |
+|---|---|---|---|
+| [**02 · Meeting → Actions**](02-meeting-to-actions/) | A meeting transcript or notes, via a form | Decisions, actions with owner, due date and supporting quote, risks, open questions, follow-up email | Built, live test pending |
+| [**Weekly Status (standalone)**](01-weekly-status-agent/) | Nothing, runs on a schedule | Weekly status report as an Outlook draft | ✅ Tested |
+
 ## Proven on a live run
 
 Test run on the fictional *Project Atlas* (free Gemini key, about 2 minutes end to end):
@@ -124,6 +131,8 @@ To use real data, replace **Read Project Tracker** with Jira, Asana, Monday.com,
 
 - [x] **v1:** orchestrator, 4 specialists, email approval gate, write-back, audit log
 - [x] **v1.1:** free-tier mode (paced calls), orchestrator plan + review, Settings node, live-tested
+- [x] **02 Meeting → Actions:** PM input form, evidence-backed actions, approval gate (live test pending)
+- [ ] Stakeholder Translator (exec / team / client versions) · Intake Triage · Retro Synthesizer · daily Slip Alert
 - [ ] **v2:** Change-impact specialist · Teams approval · write-back to the tracker · Google Sheets connector
 - [ ] **v3:** PII redaction · model router (small model for drafts, large for analysis) · cost and cycle-time dashboard · Jira and Asana connectors
 
@@ -134,6 +143,7 @@ workflow.json        n8n export (import this)
 workflow.sdk.ts      the same workflow as readable code
 docs/                screenshots, demo, design notes
 01-weekly-status-agent/   standalone version of the Status specialist
+02-meeting-to-actions/    transcript in, approved actions out
 ```
 
 ## Design notes

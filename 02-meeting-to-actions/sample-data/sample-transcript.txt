@@ -1,0 +1,21 @@
+Project Atlas weekly sync (fictional sample transcript)
+Attendees: Priya (PM), Raj Patel (Integration), Maria Okafor (Data), Sam Nguyen (Testing), Lisa Martin (Change), Daniel (VP Sales Ops, sponsor)
+
+Priya: Thanks everyone. Quick one today. Raj, where are we with the billing integration?
+Raj: Still blocked. The vendor keeps saying sandbox credentials are coming "early next week" but nobody will commit to a date.
+Daniel: That's not good enough. I'll call their account director myself today.
+Priya: Thanks Daniel. Raj, can you send Daniel the ticket history before his call?
+Raj: Yes, I'll send it within the hour.
+Priya: Maria, the accounts cleanse?
+Maria: About 80 percent done. I can finish it by Friday if someone takes the contacts validation off my plate.
+Priya: Anyone have capacity?
+(pause)
+Priya: OK, I'll find someone and come back to you tomorrow.
+Sam: On UAT, two of my testers are pulled into the Q4 audit the week of December 15th. That's exactly when UAT starts.
+Daniel: Then we need backfills. Sam, give me names of who could cover by Monday and I'll approve it.
+Sam: Will do.
+Lisa: Sales leadership wants a training demo before go-live. I don't have a date or an owner for that yet.
+Daniel: Let's decide that next week.
+Priya: Decision then: go-live stays on January 12th. We'll revisit only if the vendor misses next Wednesday.
+Daniel: Agreed.
+Priya: Great, thanks all.
