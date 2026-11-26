@@ -247,7 +247,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const v = $('Translator').first().json.output;\nconst chk = $input.first().json.output || {};\nconst inp = $('Prepare Input').first().json;\nconst esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst issues = (chk.issues || []).concat((chk.factChanges || []).map(x => ({ audience: x.audience, problem: 'Fact check: ' + x.problem, quote: '' })));\nconst card = (label, key, want) => {\n  if (!want) return '';\n  const x = v[key] || {};\n  const to = inp.recipients[label] || [];\n  const mine = issues.filter(i => String(i.audience).toLowerCase() === label.toLowerCase());\n  return '<h3 style=\"margin-bottom:4px\">' + label + (mine.length ? ' <span style=\"color:#b00020\">⚠ ' + mine.length + ' flag(s)</span>' : ' <span style=\"color:#1e7e34\">✓ no flags</span>') + '</h3>'\n    + '<p style=\"font-size:12px;color:#666;margin:0\">Draft to: ' + (to.length ? esc(to.join(', ')) : 'no recipients yet (add them in Outlook)') + '</p>'\n    + '<div style=\"border-left:3px solid #ccc;padding:6px 12px;background:#fafafa;margin:6px 0\"><b>' + esc(x.subject) + '</b><br>' + esc(x.body).replace(/\\n/g, '<br>') + '</div>'\n    + (mine.length ? '<ul style=\"color:#b00020\">' + mine.map(i => '<li>' + esc(i.problem) + (i.quote ? ': <i>\"' + esc(i.quote) + '\"</i>' : '') + '</li>').join('') + '</ul>' : '');\n};\nconst banner = issues.length\n  ? '<p style=\"background:#fdecea;border-left:4px solid #b00020;padding:8px 12px\"><b>The leak checker raised ' + issues.length + ' flag(s).</b> Read them before approving. If a flag is real, reject and resubmit with clearer internal-only notes.</p>'\n  : '<p style=\"background:#e8f5e9;border-left:4px solid #1e7e34;padding:8px 12px\">Leak checker: no internal information found in the client version and no fact changes.</p>';\nconst html = '<div style=\"font-family:Segoe UI,Arial,sans-serif;font-size:14px;color:#222;max-width:760px\">'\n  + '<p style=\"font-size:12px;letter-spacing:1px;color:#b00020;margin:0\">AI PROPOSES · YOU DECIDE</p>'\n  + '<h2 style=\"margin:4px 0\">' + esc(inp.projectName) + ': update for ' + esc(inp.audiences.join(', ')) + '</h2>'\n  + banner\n  + card('Executive', 'executive', inp.wantExec)\n  + card('Team', 'team', inp.wantTeam)\n  + card('Client', 'client', inp.wantClient)\n  + '<p style=\"font-size:12px;color:#666\">Nothing has been saved yet. Approve to save each version as an Outlook draft (never sent automatically). Reject to discard. Your decision is logged either way.</p>'\n  + '</div>';\nreturn [{ json: { subject: '[Approval needed] ' + inp.projectName + ' update for ' + inp.audiences.join(', ') + (issues.length ? ' (' + issues.length + ' flag(s))' : ''), html, flags: issues.length } }];"
+        "jsCode": "// Email layout helpers: full width, left aligned, table-based so Outlook renders it consistently.\nconst esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst F = 'font-family:Segoe UI,Arial,Helvetica,sans-serif;color:#1f2937;';\nconst T = (t, sub) => '<p style=\"' + F + 'margin:0 0 4px 0;font-size:20px;font-weight:700;line-height:1.3\">' + t + '</p>' + (sub ? '<p style=\"' + F + 'margin:0 0 14px 0;font-size:13px;color:#6b7280\">' + sub + '</p>' : '');\nconst H = (t) => '<p style=\"' + F + 'margin:20px 0 8px 0;font-size:15px;font-weight:700\">' + t + '</p>';\nconst P = (t) => '<p style=\"' + F + 'margin:0 0 10px 0;font-size:14px;line-height:1.5\">' + t + '</p>';\nconst UL = (a) => (a && a.length) ? '<ul style=\"' + F + 'margin:0 0 10px 0;padding:0 0 0 20px;font-size:14px;line-height:1.5\">' + a.map(x => '<li style=\"margin:0 0 4px 0\">' + esc(x) + '</li>').join('') + '</ul>' : P('<em>None</em>');\nconst CELL = F + 'border:1px solid #d1d5db;padding:6px 8px;text-align:left;vertical-align:top;font-size:13px;line-height:1.4;';\nconst TBL = (head, rows) => '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;border-collapse:collapse;margin:0 0 10px 0\">' + (head ? '<tr>' + head.map(h => '<th style=\"' + CELL + 'background:#f3f4f6;font-weight:700\">' + h + '</th>').join('') + '</tr>' : '') + rows.map(r => '<tr>' + r.map(c => '<td style=\"' + CELL + '\">' + c + '</td>').join('') + '</tr>').join('') + '</table>';\nconst BOX = (t, line, bg) => '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;border-collapse:collapse;margin:0 0 12px 0\"><tr><td style=\"' + F + 'background:' + bg + ';border-left:4px solid ' + line + ';padding:10px 12px;font-size:14px;line-height:1.5\">' + t + '</td></tr></table>';\nconst PILL = (t, bg) => '<span style=\"background:' + bg + ';color:#ffffff;padding:2px 10px;border-radius:10px;font-weight:700;font-size:12px\">' + t + '</span>';\nconst BTN = '<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:16px 0\"><tr><td style=\"background:#1f4e79;border-radius:4px\"><a href=\"%%DECIDE_URL%%\" style=\"' + F + 'display:inline-block;padding:11px 22px;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none\">Review and decide</a></td></tr></table>';\nconst NOTE = (t) => '<p style=\"' + F + 'margin:16px 0 0 0;font-size:12px;line-height:1.5;color:#6b7280\">' + t + '</p>';\nconst WRAP = (inner) => '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;border-collapse:collapse\"><tr><td style=\"' + F + 'padding:0;text-align:left\">' + inner + '</td></tr></table>';\nconst RAG = { Green: '#1e7e34', Amber: '#b26a00', Red: '#b00020' };\nconst v = $('Translator').first().json.output;\nconst chk = $input.first().json.output || {};\nconst inp = $('Prepare Input').first().json;\nconst issues = (chk.issues || []).concat((chk.factChanges || []).map(x => ({ audience: x.audience, problem: 'Fact check: ' + x.problem, quote: '' })));\nconst plural = (n) => n + ' flag' + (n > 1 ? 's' : '');\nconst card = (label, key, want) => {\n  if (!want) return '';\n  const x = v[key] || {};\n  const to = inp.recipients[label] || [];\n  const mine = issues.filter(i => String(i.audience).toLowerCase() === label.toLowerCase());\n  return H(label + ' version ' + (mine.length ? '<span style=\"color:#b00020\">(' + plural(mine.length) + ')</span>' : '<span style=\"color:#1e7e34\">(no flags)</span>'))\n    + P('<span style=\"font-size:13px;color:#6b7280\">Draft to: ' + (to.length ? esc(to.join(', ')) : 'no recipients yet (add them in Outlook)') + '</span>')\n    + BOX('<b>' + esc(x.subject) + '</b><br>' + esc(x.body).replace(/\\n/g, '<br>'), '#9ca3af', '#f9fafb')\n    + (mine.length ? UL(mine.map(i => i.problem + (i.quote ? ': \"' + i.quote + '\"' : ''))) : '');\n};\nconst banner = issues.length\n  ? BOX('<b>The leak checker raised ' + plural(issues.length) + '.</b> Read them before approving. If a flag is real, reject and resubmit with clearer internal-only notes.', '#b00020', '#fdecea')\n  : BOX('Leak checker: no internal information in the client version and no fact changes.', '#1e7e34', '#e8f5e9');\nconst body = T(esc(inp.projectName) + ' update', 'For: ' + esc(inp.audiences.join(', ')))\n  + banner + BTN\n  + card('Executive', 'executive', inp.wantExec) + card('Team', 'team', inp.wantTeam) + card('Client', 'client', inp.wantClient)\n  + BTN\n  + NOTE('Nothing has been saved yet. Approve to save each version as an Outlook draft (never sent automatically). Reject to discard. Your decision and comment are saved in the audit log.');\nreturn [{ json: { subject: '[Approval needed] ' + inp.projectName + ' update for ' + inp.audiences.join(', ') + (issues.length ? ' (' + plural(issues.length) + ')' : ''), html: WRAP(body), flags: issues.length } }];\n"
       },
       "id": "2a8048eb-53a6-49db-8218-da7565dff78f",
       "name": "Format Proposal for PM",
@@ -260,59 +260,19 @@
     },
     {
       "parameters": {
-        "operation": "sendAndWait",
-        "toRecipients": "={{ $(\"Prepare Input\").first().json.approverEmail }}",
-        "subject": "={{ $json.subject }}",
-        "message": "={{ $json.html }}",
-        "approvalOptions": {
-          "values": {
-            "approvalType": "double",
-            "approveLabel": "Approve and save drafts",
-            "disapproveLabel": "Reject"
-          }
-        },
-        "options": {
-          "limitWaitTime": {
-            "values": {
-              "resumeAmount": 2,
-              "resumeUnit": "days"
-            }
-          },
-          "appendAttribution": false
-        }
-      },
-      "id": "c3e0ed8f-ad45-4853-a1c6-1e0f77cb636a",
-      "name": "PM Approval Gate",
-      "type": "n8n-nodes-base.microsoftOutlook",
-      "typeVersion": 2,
-      "position": [
-        1328,
-        224
-      ],
-      "webhookId": "67b04095-568e-4126-b934-f171fabdcf0c",
-      "credentials": {
-        "microsoftOutlookOAuth2Api": {
-          "id": "",
-          "name": "Microsoft Outlook account"
-        }
-      }
-    },
-    {
-      "parameters": {
         "conditions": {
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "loose",
-            "version": 1
+            "typeValidation": "loose"
           },
           "conditions": [
             {
-              "leftValue": "={{ $json.data.approved }}",
+              "leftValue": "={{ $json.Decision }}",
+              "rightValue": "Approve",
               "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
+                "type": "string",
+                "operation": "equals"
               }
             }
           ],
@@ -381,7 +341,7 @@
             "run_id": "={{ $execution.id }}",
             "specialist": "Translator + Leak Checker",
             "proposal": "={{ $(\"Prepare Input\").first().json.projectName }} update for {{ $(\"Prepare Input\").first().json.audiences.join(\", \") }}",
-            "decision": "Approved",
+            "decision": "={{ \"Approved\" + ($(\"Wait for PM Decision\").first().json.Comment ? \": \" + $(\"Wait for PM Decision\").first().json.Comment : \"\") }}",
             "decided_by": "PM",
             "write_back": "={{ $(\"Split Approved Versions\").all().length }} draft(s) saved; leak-check flags at approval: {{ $(\"Format Proposal for PM\").first().json.flags }}"
           },
@@ -467,7 +427,7 @@
             "run_id": "={{ $execution.id }}",
             "specialist": "Translator + Leak Checker",
             "proposal": "={{ $(\"Prepare Input\").first().json.projectName }} update for {{ $(\"Prepare Input\").first().json.audiences.join(\", \") }}",
-            "decision": "Rejected (or no response in 2 days)",
+            "decision": "={{ ($(\"Wait for PM Decision\").first().json.Decision ? \"Rejected\" : \"No response in time\") + ($(\"Wait for PM Decision\").first().json.Comment ? \": \" + $(\"Wait for PM Decision\").first().json.Comment : \"\") }}",
             "decided_by": "PM",
             "write_back": "None"
           },
@@ -554,6 +514,77 @@
         -16,
         240
       ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "toRecipients": "={{ $(\"Prepare Input\").first().json.approverEmail }}",
+        "subject": "={{ $json.subject }}",
+        "bodyContent": "={{ $json.html.replaceAll('%%DECIDE_URL%%', $execution.resumeFormUrl) }}",
+        "additionalFields": {
+          "bodyContentType": "html"
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        1288,
+        224
+      ],
+      "id": "f61f12e9-a736-45bc-b5bf-67a034fe88bc",
+      "name": "Send Decision Email",
+      "webhookId": "975e6437-cc1b-44dd-a0f6-b69a03ead8af",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "form",
+        "formTitle": "Your decision",
+        "formDescription": "Choose what happens next. Nothing is written to any system until you submit this form.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Decision",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Approve"
+                  },
+                  {
+                    "option": "Reject"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Comment",
+              "fieldType": "textarea",
+              "placeholder": "Optional. Saved in the audit log."
+            }
+          ]
+        },
+        "limitWaitTime": true,
+        "limitType": "afterTimeInterval",
+        "resumeAmount": 2,
+        "resumeUnit": "days"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1428,
+        364
+      ],
+      "id": "d968f9e0-41e0-4e10-aefc-08df1461d131",
+      "name": "Wait for PM Decision",
+      "webhookId": "9a33030f-6333-44f2-81f7-d7b1c678d675"
     }
   ],
   "connections": {
@@ -671,18 +702,7 @@
       "main": [
         [
           {
-            "node": "PM Approval Gate",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "PM Approval Gate": {
-      "main": [
-        [
-          {
-            "node": "Approved?",
+            "node": "Send Decision Email",
             "type": "main",
             "index": 0
           }
@@ -728,6 +748,28 @@
           }
         ]
       ]
+    },
+    "Send Decision Email": {
+      "main": [
+        [
+          {
+            "node": "Wait for PM Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for PM Decision": {
+      "main": [
+        [
+          {
+            "node": "Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -761,15 +803,6 @@
       "description": "Translator writes each version; Leak Checker flags internal info in the client version and fact changes"
     },
     {
-      "id": "f50dc3cc-42d8-49cd-b34e-d832d50e4405",
-      "name": "PM decides",
-      "nodeIds": [
-        "c3e0ed8f-ad45-4853-a1c6-1e0f77cb636a",
-        "8db8b7bf-dead-4332-82e5-9ca5c569d63c"
-      ],
-      "description": "Approve or reject by email. Nothing is saved before this point."
-    },
-    {
       "id": "07bb1499-50c4-4be4-a8e0-1b6bc085900a",
       "name": "Act and log",
       "nodeIds": [
@@ -778,6 +811,16 @@
         "5930218c-4390-4b91-a54a-3ab8278b92df"
       ],
       "description": "Only after approval: one Outlook draft per audience, then an audit entry"
+    },
+    {
+      "id": "cfa680c0-9248-4ff7-a210-528200d6fe78",
+      "name": "PM decides",
+      "nodeNames": [
+        "Send Decision Email",
+        "Wait for PM Decision",
+        "Approved?"
+      ],
+      "description": "Our own decision email; the PM opens a short form to approve or reject, with an optional comment."
     }
   ],
   "active": false

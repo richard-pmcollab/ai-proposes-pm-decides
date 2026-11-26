@@ -1,0 +1,307 @@
+{
+  "name": "AI Proposes, PM Decides: 01 Weekly Status (standalone)",
+  "nodes": [
+    {
+      "id": "20c54c25-02e1-4ee7-b381-f598ff6f8b20",
+      "name": "Every Friday 8 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [
+                5
+              ],
+              "triggerAtHour": 8,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "4c778be3-ea53-45d6-93de-bf34188e11dd",
+      "name": "Load Project Tracker (Sample)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        224
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Fictional sample project. Replace this node with your real tracker\n// (Excel on OneDrive, Google Sheets, Jira, Asana) and keep the same fields.\n// Dates are relative to today so the sample always looks current.\nconst today = new Date();\ntoday.setHours(0, 0, 0, 0);\nconst d = (n) => { const x = new Date(today); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };\n\nconst project = {\n  name: 'Project Atlas: CRM Migration',\n  sponsor: 'VP Sales Operations',\n  phase: 'Build',\n  budgetPlanned: 250000,\n  budgetSpent: 171000,\n  goLive: d(47)\n};\n\nconst tasks = [\n  { id: 'T-101', task: 'Data mapping sign-off', owner: 'A. Chen', workstream: 'Data', due: d(-9), progress: 100, status: 'Done', critical: true },\n  { id: 'T-102', task: 'Legacy data cleanse (accounts)', owner: 'M. Okafor', workstream: 'Data', due: d(-3), progress: 80, status: 'In Progress', critical: true },\n  { id: 'T-103', task: 'Legacy data cleanse (contacts)', owner: 'M. Okafor', workstream: 'Data', due: d(4), progress: 45, status: 'In Progress', critical: true },\n  { id: 'T-104', task: 'API integration with billing system', owner: 'R. Patel', workstream: 'Integration', due: d(2), progress: 60, status: 'Blocked', critical: true, blocker: 'Waiting on billing vendor sandbox credentials' },\n  { id: 'T-105', task: 'Sales pipeline configuration', owner: 'J. Tremblay', workstream: 'Config', due: d(-5), progress: 100, status: 'Done', critical: false },\n  { id: 'T-106', task: 'Role and permission setup', owner: 'J. Tremblay', workstream: 'Config', due: d(6), progress: 70, status: 'In Progress', critical: false },\n  { id: 'T-107', task: 'UAT test scripts', owner: 'S. Nguyen', workstream: 'Testing', due: d(10), progress: 30, status: 'In Progress', critical: false },\n  { id: 'T-108', task: 'Training plan for 120 sales reps', owner: 'L. Martin', workstream: 'Change', due: d(14), progress: 20, status: 'In Progress', critical: false },\n  { id: 'T-109', task: 'Reporting dashboards', owner: 'A. Chen', workstream: 'Config', due: d(-1), progress: 100, status: 'Done', critical: false }\n];\n\nconst milestones = [\n  { name: 'Data migration dry run', baseline: d(5), forecast: d(12) },\n  { name: 'UAT start', baseline: d(19), forecast: d(21) },\n  { name: 'Go-live', baseline: d(47), forecast: d(47) }\n];\n\nconst teamNotes = [\n  'Billing vendor says sandbox credentials will arrive early next week, no firm date.',\n  'Two UAT testers are shared with the Q4 audit and may be unavailable for 5 days.',\n  'Sales leadership asked for a training demo before go-live.',\n  'Reporting dashboards finished a day early.'\n];\n\nreturn [{ json: { reportDate: d(0), project, tasks, milestones, teamNotes } }];"
+      }
+    },
+    {
+      "id": "7320f5cc-ddc0-4150-8716-2fc8e1e99b15",
+      "name": "Calculate Health and RAG",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        224
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// RAG status is set by fixed rules here, NOT by the AI.\n// The rules are visible and auditable; the AI only writes the narrative.\nconst data = $input.first().json;\nconst today = new Date(data.reportDate);\nconst DAY = 86400000;\n\nconst open = data.tasks.filter(t => t.status !== 'Done');\nconst done = data.tasks.filter(t => t.status === 'Done');\nconst overdue = open.filter(t => new Date(t.due) < today);\nconst blocked = open.filter(t => t.status === 'Blocked');\nconst dueNext7 = open.filter(t => { const days = (new Date(t.due) - today) / DAY; return days >= 0 && days <= 7; });\nconst criticalOverdue = overdue.filter(t => t.critical);\n\nconst percentComplete = Math.round(data.tasks.reduce((s, t) => s + t.progress, 0) / data.tasks.length);\nconst budgetUsedPct = Math.round((data.project.budgetSpent / data.project.budgetPlanned) * 100);\n\nconst milestones = data.milestones.map(m => ({ ...m, slipDays: Math.round((new Date(m.forecast) - new Date(m.baseline)) / DAY) }));\nconst maxSlip = Math.max(0, ...milestones.map(m => m.slipDays));\n\nconst reasons = [];\nif (maxSlip > 0) reasons.push('Milestone slip of up to ' + maxSlip + ' days');\nif (criticalOverdue.length) reasons.push(criticalOverdue.length + ' critical task(s) overdue');\nif (overdue.length > criticalOverdue.length) reasons.push((overdue.length - criticalOverdue.length) + ' non-critical task(s) overdue');\nif (blocked.length) reasons.push(blocked.length + ' task(s) blocked');\nif (budgetUsedPct - percentComplete > 10) reasons.push('Budget burn (' + budgetUsedPct + '%) ahead of progress (' + percentComplete + '%)');\n\nlet rag = 'Green';\nif (maxSlip > 5 || criticalOverdue.length >= 2) rag = 'Red';\nelse if (reasons.length) rag = 'Amber';\n\nreturn [{ json: {\n  ...data,\n  metrics: {\n    rag,\n    ragReasons: reasons.length ? reasons : ['On track: no slips, overdue or blocked work'],\n    percentComplete,\n    budgetUsedPct,\n    tasksDone: done.length,\n    tasksOpen: open.length,\n    overdue: overdue.map(t => ({ id: t.id, task: t.task, owner: t.owner, due: t.due, critical: t.critical })),\n    blocked: blocked.map(t => ({ id: t.id, task: t.task, owner: t.owner, blocker: t.blocker })),\n    dueNext7: dueNext7.map(t => ({ id: t.id, task: t.task, owner: t.owner, due: t.due })),\n    milestones\n  }\n} }];"
+      }
+    },
+    {
+      "id": "e68766bb-78dd-4982-bc00-ad76881b4f67",
+      "name": "Draft Status Report",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        800,
+        224
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write this week's status report from the project data below.\n\n{{ JSON.stringify($json, null, 2) }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a senior program manager's reporting assistant. You draft the weekly status report that the PM reviews before sending.\n\nRules:\n- Use ONLY facts in the data. Never invent tasks, dates, names or numbers.\n- The RAG status in metrics.rag is final. Do not change it or argue with it. Explain it using metrics.ragReasons.\n- Executive summary: 2-3 plain sentences. Lead with the RAG and the single most important issue.\n- Accomplishments: tasks with status Done, plus positive items from teamNotes.\n- Next week: open tasks from metrics.dueNext7, most critical first.\n- Risks: build from blocked tasks, overdue critical tasks, milestone slips and teamNotes. Each risk needs impact, a concrete mitigation and an owner from the data.\n- Decisions needed: only items that need a sponsor or leadership decision. Empty list if none.\n- Subject format: \"<project name> | Weekly Status | <RAG>\".\n- Tone: direct and factual. Red means red. No filler or hype."
+        }
+      }
+    },
+    {
+      "id": "98e424a9-bfe3-402d-80cd-e1bfb335e9c7",
+      "name": "Gemini Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        816,
+        448
+      ],
+      "parameters": {
+        "modelName": "models/gemini-3-flash-preview",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "id": "cfcd4fdd-b77f-495a-9c26-098c9eccdef5",
+      "name": "Report Structure",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        944,
+        448
+      ],
+      "parameters": {
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "{ \"subject\": \"Project Atlas | Weekly Status | Amber\", \"executiveSummary\": \"Two or three sentences for an executive.\", \"accomplishments\": [\"Finished X\"], \"nextWeek\": [\"Complete Y\"], \"risks\": [{ \"risk\": \"Vendor delay on sandbox\", \"impact\": \"Dry run slips 7 days\", \"mitigation\": \"Escalate to vendor account manager\", \"owner\": \"R. Patel\" }], \"decisionsNeeded\": [\"Approve backfill tester for 5 days\"] }"
+      }
+    },
+    {
+      "id": "a502bb92-fc6b-4f1c-9a86-556997167c49",
+      "name": "Format Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1152,
+        224
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Email layout helpers: full width, left aligned, table-based so Outlook renders it consistently.\nconst esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst F = 'font-family:Segoe UI,Arial,Helvetica,sans-serif;color:#1f2937;';\nconst T = (t, sub) => '<p style=\"' + F + 'margin:0 0 4px 0;font-size:20px;font-weight:700;line-height:1.3\">' + t + '</p>' + (sub ? '<p style=\"' + F + 'margin:0 0 14px 0;font-size:13px;color:#6b7280\">' + sub + '</p>' : '');\nconst H = (t) => '<p style=\"' + F + 'margin:20px 0 8px 0;font-size:15px;font-weight:700\">' + t + '</p>';\nconst P = (t) => '<p style=\"' + F + 'margin:0 0 10px 0;font-size:14px;line-height:1.5\">' + t + '</p>';\nconst UL = (a) => (a && a.length) ? '<ul style=\"' + F + 'margin:0 0 10px 0;padding:0 0 0 20px;font-size:14px;line-height:1.5\">' + a.map(x => '<li style=\"margin:0 0 4px 0\">' + esc(x) + '</li>').join('') + '</ul>' : P('<em>None</em>');\nconst CELL = F + 'border:1px solid #d1d5db;padding:6px 8px;text-align:left;vertical-align:top;font-size:13px;line-height:1.4;';\nconst TBL = (head, rows) => '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;border-collapse:collapse;margin:0 0 10px 0\">' + (head ? '<tr>' + head.map(h => '<th style=\"' + CELL + 'background:#f3f4f6;font-weight:700\">' + h + '</th>').join('') + '</tr>' : '') + rows.map(r => '<tr>' + r.map(c => '<td style=\"' + CELL + '\">' + c + '</td>').join('') + '</tr>').join('') + '</table>';\nconst BOX = (t, line, bg) => '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;border-collapse:collapse;margin:0 0 12px 0\"><tr><td style=\"' + F + 'background:' + bg + ';border-left:4px solid ' + line + ';padding:10px 12px;font-size:14px;line-height:1.5\">' + t + '</td></tr></table>';\nconst PILL = (t, bg) => '<span style=\"background:' + bg + ';color:#ffffff;padding:2px 10px;border-radius:10px;font-weight:700;font-size:12px\">' + t + '</span>';\nconst BTN = '<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:16px 0\"><tr><td style=\"background:#1f4e79;border-radius:4px\"><a href=\"%%DECIDE_URL%%\" style=\"' + F + 'display:inline-block;padding:11px 22px;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none\">Review and decide</a></td></tr></table>';\nconst NOTE = (t) => '<p style=\"' + F + 'margin:16px 0 0 0;font-size:12px;line-height:1.5;color:#6b7280\">' + t + '</p>';\nconst WRAP = (inner) => '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;border-collapse:collapse\"><tr><td style=\"' + F + 'padding:0;text-align:left\">' + inner + '</td></tr></table>';\nconst RAG = { Green: '#1e7e34', Amber: '#b26a00', Red: '#b00020' };\nconst r = $input.first().json.output;\nconst src = $('Calculate Health and RAG').first().json;\nconst m = src.metrics;\nconst ms = m.milestones.map(x => [esc(x.name), x.baseline, x.forecast, x.slipDays > 0 ? '<b style=\"color:#b00020\">+' + x.slipDays + ' days</b>' : 'On time']);\nconst risks = (r.risks || []).map(x => [esc(x.risk), esc(x.impact), esc(x.mitigation), esc(x.owner)]);\nconst body = BOX('Draft prepared by the Weekly Status Agent. Review and edit before sending.', '#b26a00', '#fff8e1')\n  + T(esc(src.project.name), 'Week ending ' + src.reportDate + ' · Phase: ' + esc(src.project.phase) + ' · Sponsor: ' + esc(src.project.sponsor))\n  + BOX(PILL(m.rag.toUpperCase(), RAG[m.rag]) + '&nbsp;&nbsp;' + m.percentComplete + '% complete · ' + m.budgetUsedPct + '% of budget used · ' + m.tasksOpen + ' open tasks<br><span style=\"font-size:13px;color:#4b5563\">Why ' + m.rag + ': ' + m.ragReasons.map(esc).join('; ') + '</span>', RAG[m.rag], '#f9fafb')\n  + H('Summary') + P(esc(r.executiveSummary))\n  + H('Milestones') + TBL(['Milestone', 'Baseline', 'Forecast', 'Slip'], ms)\n  + H('Done this week') + UL(r.accomplishments)\n  + H('Next week') + UL(r.nextWeek)\n  + H('Risks and issues') + (risks.length ? TBL(['Risk', 'Impact', 'Mitigation', 'Owner'], risks) : P('<em>None</em>'))\n  + H('Decisions needed') + UL(r.decisionsNeeded);\nreturn [{ json: { subject: r.subject, html: WRAP(body), rag: m.rag } }];\n"
+      }
+    },
+    {
+      "id": "8041207a-102e-49b0-b58c-d03ec10f7b5b",
+      "name": "Save as Outlook Draft",
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        224
+      ],
+      "parameters": {
+        "resource": "draft",
+        "operation": "create",
+        "subject": "={{ $json.subject }}",
+        "bodyContent": "={{ $json.html }}",
+        "additionalFields": {
+          "bodyContentType": "html",
+          "importance": "={{ $json.rag === \"Red\" ? \"High\" : \"Normal\" }}"
+        }
+      },
+      "webhookId": "e2ceceaf-a249-419c-8869-c96acc4c2532",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "id": "ada424b1-a7bd-4959-84ac-d13440224549",
+      "name": "Test Run",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        192
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "7ccb093b-4332-42de-a8a3-4f060d3f296c",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -120
+      ],
+      "parameters": {
+        "content": "## 01 · Weekly Status (standalone)\n**What it does:** every Friday it reads the project tracker, calculates health with fixed rules, has an AI draft the report, and saves it as an Outlook **draft**.\n\n**Human in the loop:** nothing is sent automatically. The PM reviews, edits and sends.\n\n**Design choice:** RAG is rule-based, not AI-decided, so the status is consistent and auditable. The AI only writes the narrative.\n\n**To use with real data:** replace \"Load Project Tracker (Sample)\" with your tracker and keep the same fields.",
+        "color": 5,
+        "width": 384,
+        "height": 260
+      }
+    }
+  ],
+  "connections": {
+    "Every Friday 8 AM": {
+      "main": [
+        [
+          {
+            "node": "Load Project Tracker (Sample)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Project Tracker (Sample)": {
+      "main": [
+        [
+          {
+            "node": "Calculate Health and RAG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Health and RAG": {
+      "main": [
+        [
+          {
+            "node": "Draft Status Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft Status Report": {
+      "main": [
+        [
+          {
+            "node": "Format Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Draft Status Report",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Report Structure": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Draft Status Report",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Email": {
+      "main": [
+        [
+          {
+            "node": "Save as Outlook Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Run": {
+      "main": [
+        [
+          {
+            "node": "Load Project Tracker (Sample)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodeGroups": [
+    {
+      "id": "3d709734-34e7-4a99-8eee-89daf6667075",
+      "name": "Gather and score",
+      "nodeNames": [
+        "Load Project Tracker (Sample)",
+        "Calculate Health and RAG"
+      ],
+      "description": "Loads tracker data and sets the RAG status with fixed, auditable rules"
+    },
+    {
+      "id": "f44d3f37-b596-4caa-a34a-a8e3ee46783a",
+      "name": "AI drafting",
+      "nodeNames": [
+        "Draft Status Report",
+        "Gemini Model",
+        "Report Structure",
+        "Format Email"
+      ],
+      "description": "Gemini writes the narrative from the facts; the email is formatted with the rule-based RAG"
+    },
+    {
+      "id": "8ef1a8a0-f66d-43bc-8f31-1c436fa1d850",
+      "name": "Human review",
+      "nodeNames": [
+        "Save as Outlook Draft"
+      ],
+      "description": "Saved as an Outlook draft. The PM reviews and sends; nothing goes out automatically"
+    }
+  ]
+}

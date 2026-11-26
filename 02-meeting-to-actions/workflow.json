@@ -213,7 +213,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const m = $('Meeting Analyst').first().json.output;\nconst f = $input.first().json.output;\nconst inp = $('Prepare Input').first().json;\nconst esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst ul = (a) => a && a.length ? '<ul>' + a.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' : '<p><em>None</em></p>';\nconst td = 'style=\"border:1px solid #ddd;padding:5px 8px;text-align:left;vertical-align:top\"';\nconst flag = (a) => (a.owner === 'UNASSIGNED' || a.confidence === 'Low') ? ' style=\"background:#fff3e0\"' : '';\nconst actions = (m.actions || []).length\n  ? '<table style=\"border-collapse:collapse;font-size:13px\"><tr><th ' + td + '>Action</th><th ' + td + '>Owner</th><th ' + td + '>Due</th><th ' + td + '>Confidence</th><th ' + td + '>From the meeting</th></tr>'\n    + m.actions.map(a => '<tr' + flag(a) + '><td ' + td + '>' + esc(a.action) + '</td><td ' + td + '>' + esc(a.owner) + '</td><td ' + td + '>' + esc(a.dueDate) + '</td><td ' + td + '>' + esc(a.confidence) + '</td><td ' + td + '><i>\"' + esc(a.sourceQuote) + '\"</i></td></tr>').join('') + '</table>'\n    + '<p style=\"font-size:12px;color:#666\">Highlighted rows have no clear owner or low confidence. Check them before approving.</p>'\n  : '<p><em>No actions found</em></p>';\nconst risks = (m.risks || []).length\n  ? '<table style=\"border-collapse:collapse;font-size:13px\"><tr><th ' + td + '>Type</th><th ' + td + '>Title</th><th ' + td + '>Impact</th><th ' + td + '>Likelihood</th><th ' + td + '>Owner</th><th ' + td + '>Mitigation</th></tr>'\n    + m.risks.map(r => '<tr><td ' + td + '>' + esc(r.raid_type) + '</td><td ' + td + '>' + esc(r.title) + '</td><td ' + td + '>' + esc(r.impact) + '</td><td ' + td + '>' + esc(r.likelihood) + '</td><td ' + td + '>' + esc(r.owner) + '</td><td ' + td + '>' + esc(r.mitigation) + '</td></tr>').join('') + '</table>'\n  : '<p><em>No new risks</em></p>';\n\nconst html = '<div style=\"font-family:Segoe UI,Arial,sans-serif;font-size:14px;color:#222;max-width:760px\">'\n  + '<p style=\"font-size:12px;letter-spacing:1px;color:#b00020;margin:0\">AI PROPOSES · YOU DECIDE</p>'\n  + '<h2 style=\"margin:4px 0\">' + esc(inp.meetingName) + ' · ' + esc(inp.meetingDate) + '</h2>'\n  + (inp.truncated ? '<p style=\"color:#b00020\">Note: the transcript was very long and only the first part was analysed.</p>' : '')\n  + '<p>' + esc(m.summary) + '</p>'\n  + '<h3>1 · Decisions</h3>' + ul((m.decisions || []).map(d => d.decision + (d.madeBy ? ' (' + d.madeBy + ')' : '')))\n  + '<h3>2 · Actions (will be added to the action log if you approve)</h3>' + actions\n  + '<h3>3 · New risks and issues (will be added to the RAID log if you approve)</h3>' + risks\n  + '<h3>4 · Open questions</h3>' + ul(m.openQuestions)\n  + '<h3>5 · Follow-up email (will be saved as a draft to ' + (inp.attendees.length ? esc(inp.attendees.join(', ')) : 'no recipients yet') + ')</h3>'\n  + '<div style=\"border-left:3px solid #ccc;padding:6px 12px;background:#fafafa\"><b>' + esc(f.subject) + '</b><br>' + esc(f.body).replace(/\\n/g, '<br>') + '</div>'\n  + '<p style=\"font-size:12px;color:#666\">Nothing has been saved yet. Approve to log the actions and risks and save the follow-up as a draft. Reject to discard. Your decision is logged either way.</p>'\n  + '</div>';\nreturn [{ json: { subject: '[Approval needed] Actions from ' + inp.meetingName, html } }];"
+        "jsCode": "// Email layout helpers: full width, left aligned, table-based so Outlook renders it consistently.\nconst esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst F = 'font-family:Segoe UI,Arial,Helvetica,sans-serif;color:#1f2937;';\nconst T = (t, sub) => '<p style=\"' + F + 'margin:0 0 4px 0;font-size:20px;font-weight:700;line-height:1.3\">' + t + '</p>' + (sub ? '<p style=\"' + F + 'margin:0 0 14px 0;font-size:13px;color:#6b7280\">' + sub + '</p>' : '');\nconst H = (t) => '<p style=\"' + F + 'margin:20px 0 8px 0;font-size:15px;font-weight:700\">' + t + '</p>';\nconst P = (t) => '<p style=\"' + F + 'margin:0 0 10px 0;font-size:14px;line-height:1.5\">' + t + '</p>';\nconst UL = (a) => (a && a.length) ? '<ul style=\"' + F + 'margin:0 0 10px 0;padding:0 0 0 20px;font-size:14px;line-height:1.5\">' + a.map(x => '<li style=\"margin:0 0 4px 0\">' + esc(x) + '</li>').join('') + '</ul>' : P('<em>None</em>');\nconst CELL = F + 'border:1px solid #d1d5db;padding:6px 8px;text-align:left;vertical-align:top;font-size:13px;line-height:1.4;';\nconst TBL = (head, rows) => '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;border-collapse:collapse;margin:0 0 10px 0\">' + (head ? '<tr>' + head.map(h => '<th style=\"' + CELL + 'background:#f3f4f6;font-weight:700\">' + h + '</th>').join('') + '</tr>' : '') + rows.map(r => '<tr>' + r.map(c => '<td style=\"' + CELL + '\">' + c + '</td>').join('') + '</tr>').join('') + '</table>';\nconst BOX = (t, line, bg) => '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;border-collapse:collapse;margin:0 0 12px 0\"><tr><td style=\"' + F + 'background:' + bg + ';border-left:4px solid ' + line + ';padding:10px 12px;font-size:14px;line-height:1.5\">' + t + '</td></tr></table>';\nconst PILL = (t, bg) => '<span style=\"background:' + bg + ';color:#ffffff;padding:2px 10px;border-radius:10px;font-weight:700;font-size:12px\">' + t + '</span>';\nconst BTN = '<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:16px 0\"><tr><td style=\"background:#1f4e79;border-radius:4px\"><a href=\"%%DECIDE_URL%%\" style=\"' + F + 'display:inline-block;padding:11px 22px;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none\">Review and decide</a></td></tr></table>';\nconst NOTE = (t) => '<p style=\"' + F + 'margin:16px 0 0 0;font-size:12px;line-height:1.5;color:#6b7280\">' + t + '</p>';\nconst WRAP = (inner) => '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;border-collapse:collapse\"><tr><td style=\"' + F + 'padding:0;text-align:left\">' + inner + '</td></tr></table>';\nconst RAG = { Green: '#1e7e34', Amber: '#b26a00', Red: '#b00020' };\nconst m = $('Meeting Analyst').first().json.output;\nconst f = $input.first().json.output;\nconst inp = $('Prepare Input').first().json;\nconst flagged = (a) => a.owner === 'UNASSIGNED' || a.confidence === 'Low';\nconst actRows = (m.actions || []).map(a => [(flagged(a) ? '<span style=\"color:#b26a00;font-weight:700\">⚠ </span>' : '') + esc(a.action), esc(a.owner), esc(a.dueDate), esc(a.confidence), '<i>\"' + esc(a.sourceQuote) + '\"</i>']);\nconst riskRows = (m.risks || []).map(r => [esc(r.raid_type), esc(r.title), esc(r.impact), esc(r.likelihood), esc(r.owner), esc(r.mitigation)]);\nconst body = T('Actions from ' + esc(inp.meetingName), esc(inp.meetingDate) + ' · ' + (m.actions || []).length + ' actions · ' + (m.risks || []).length + ' risks')\n  + (inp.truncated ? BOX('The transcript was very long, so only the first part was analysed.', '#b00020', '#fdecea') : '')\n  + P(esc(m.summary))\n  + BTN\n  + H('1. Decisions') + UL((m.decisions || []).map(d => d.decision + (d.madeBy ? ' (' + d.madeBy + ')' : '')))\n  + H('2. Actions (added to the action log if you approve)') + (actRows.length ? TBL(['Action', 'Owner', 'Due', 'Confidence', 'From the meeting'], actRows) + P('<span style=\"font-size:13px;color:#6b7280\">⚠ = no clear owner or low confidence. Check these before approving.</span>') : P('<em>No actions found</em>'))\n  + H('3. New risks and issues (added to the RAID log if you approve)') + (riskRows.length ? TBL(['Type', 'Title', 'Impact', 'Likelihood', 'Owner', 'Mitigation'], riskRows) : P('<em>No new risks</em>'))\n  + H('4. Open questions') + UL(m.openQuestions)\n  + H('5. Follow-up email (saved as a draft' + (inp.attendees.length ? ' to ' + esc(inp.attendees.join(', ')) : '') + ' if you approve)') + BOX('<b>' + esc(f.subject) + '</b><br>' + esc(f.body).replace(/\\n/g, '<br>'), '#9ca3af', '#f9fafb')\n  + BTN\n  + NOTE('Nothing has been saved yet. Approve to log the actions and risks and save the follow-up as a draft. Reject to discard. Your decision and comment are saved in the audit log.');\nreturn [{ json: { subject: '[Approval needed] Actions from ' + inp.meetingName, html: WRAP(body) } }];\n"
       },
       "id": "3fdb9722-37b5-430e-96b5-2fb2e264c125",
       "name": "Format Proposal for PM",
@@ -226,59 +226,19 @@
     },
     {
       "parameters": {
-        "operation": "sendAndWait",
-        "toRecipients": "={{ $(\"Prepare Input\").first().json.approverEmail }}",
-        "subject": "={{ $json.subject }}",
-        "message": "={{ $json.html }}",
-        "approvalOptions": {
-          "values": {
-            "approvalType": "double",
-            "approveLabel": "Approve and apply",
-            "disapproveLabel": "Reject"
-          }
-        },
-        "options": {
-          "limitWaitTime": {
-            "values": {
-              "resumeAmount": 2,
-              "resumeUnit": "days"
-            }
-          },
-          "appendAttribution": false
-        }
-      },
-      "id": "916fbbb4-6afe-4046-a38a-8d4567ef8da7",
-      "name": "PM Approval Gate",
-      "type": "n8n-nodes-base.microsoftOutlook",
-      "typeVersion": 2,
-      "position": [
-        1328,
-        224
-      ],
-      "webhookId": "9733b603-d5e5-451e-9770-51cc190fef90",
-      "credentials": {
-        "microsoftOutlookOAuth2Api": {
-          "id": "",
-          "name": "Microsoft Outlook account"
-        }
-      }
-    },
-    {
-      "parameters": {
         "conditions": {
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "loose",
-            "version": 1
+            "typeValidation": "loose"
           },
           "conditions": [
             {
-              "leftValue": "={{ $json.data.approved }}",
+              "leftValue": "={{ $json.Decision }}",
+              "rightValue": "Approve",
               "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
+                "type": "string",
+                "operation": "equals"
               }
             }
           ],
@@ -334,7 +294,7 @@
             "run_id": "={{ $execution.id }}",
             "specialist": "Meeting Analyst + Follow-up Writer",
             "proposal": "=Actions from {{ $(\"Prepare Input\").first().json.meetingName }}",
-            "decision": "Approved",
+            "decision": "={{ \"Approved\" + ($(\"Wait for PM Decision\").first().json.Comment ? \": \" + $(\"Wait for PM Decision\").first().json.Comment : \"\") }}",
             "decided_by": "PM",
             "write_back": "={{ ($(\"Meeting Analyst\").first().json.output.actions || []).length }} action(s), {{ ($(\"Meeting Analyst\").first().json.output.risks || []).length }} RAID item(s), follow-up draft saved"
           },
@@ -691,7 +651,7 @@
             "run_id": "={{ $execution.id }}",
             "specialist": "Meeting Analyst + Follow-up Writer",
             "proposal": "=Actions from {{ $(\"Prepare Input\").first().json.meetingName }}",
-            "decision": "Rejected (or no response in 2 days)",
+            "decision": "={{ ($(\"Wait for PM Decision\").first().json.Decision ? \"Rejected\" : \"No response in time\") + ($(\"Wait for PM Decision\").first().json.Comment ? \": \" + $(\"Wait for PM Decision\").first().json.Comment : \"\") }}",
             "decided_by": "PM",
             "write_back": "None"
           },
@@ -778,6 +738,77 @@
         -32,
         240
       ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "toRecipients": "={{ $(\"Prepare Input\").first().json.approverEmail }}",
+        "subject": "={{ $json.subject }}",
+        "bodyContent": "={{ $json.html.replaceAll('%%DECIDE_URL%%', $execution.resumeFormUrl) }}",
+        "additionalFields": {
+          "bodyContentType": "html"
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        1288,
+        224
+      ],
+      "id": "24b402ff-22ee-4447-979b-d117ef5c458a",
+      "name": "Send Decision Email",
+      "webhookId": "24a5d0d4-e8d4-46c1-a786-0bfa3c431332",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "form",
+        "formTitle": "Your decision",
+        "formDescription": "Choose what happens next. Nothing is written to any system until you submit this form.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Decision",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Approve"
+                  },
+                  {
+                    "option": "Reject"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Comment",
+              "fieldType": "textarea",
+              "placeholder": "Optional. Saved in the audit log."
+            }
+          ]
+        },
+        "limitWaitTime": true,
+        "limitType": "afterTimeInterval",
+        "resumeAmount": 2,
+        "resumeUnit": "days"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1428,
+        364
+      ],
+      "id": "9d73a2e1-6c16-4e0b-b470-1d3197e18547",
+      "name": "Wait for PM Decision",
+      "webhookId": "480ac473-ebc2-4bc1-b206-547d855130da"
     }
   ],
   "connections": {
@@ -895,18 +926,7 @@
       "main": [
         [
           {
-            "node": "PM Approval Gate",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "PM Approval Gate": {
-      "main": [
-        [
-          {
-            "node": "Approved?",
+            "node": "Send Decision Email",
             "type": "main",
             "index": 0
           }
@@ -981,6 +1001,28 @@
           }
         ]
       ]
+    },
+    "Send Decision Email": {
+      "main": [
+        [
+          {
+            "node": "Wait for PM Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for PM Decision": {
+      "main": [
+        [
+          {
+            "node": "Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -1014,15 +1056,6 @@
       "description": "Meeting Analyst extracts items with evidence; Follow-up Writer drafts the attendee email"
     },
     {
-      "id": "716cc87d-4794-4e1f-9f02-c4d5d7eb3bc7",
-      "name": "PM decides",
-      "nodeIds": [
-        "916fbbb4-6afe-4046-a38a-8d4567ef8da7",
-        "1e054745-f0f7-4c62-85a8-edb368f02e7d"
-      ],
-      "description": "Approve or reject by email. Nothing is saved before this point."
-    },
-    {
       "id": "9374e33b-dd94-4399-be5d-e22c57b4394a",
       "name": "Act and log",
       "nodeIds": [
@@ -1034,6 +1067,16 @@
         "cc9c5045-606e-47b8-acf0-b6daa5f48ce1"
       ],
       "description": "Only after approval: follow-up draft, action log, RAID log, audit entry"
+    },
+    {
+      "id": "7c434279-9a76-4d13-930f-0433b5b5970d",
+      "name": "PM decides",
+      "nodeNames": [
+        "Send Decision Email",
+        "Wait for PM Decision",
+        "Approved?"
+      ],
+      "description": "Our own decision email; the PM opens a short form to approve or reject, with an optional comment."
     }
   ],
   "active": false

@@ -269,7 +269,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const a = $input.first().json.output;\nconst d = $('Detect Changes (rules)').first().json;\nconst esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst td = 'style=\"border:1px solid #ddd;padding:5px 8px;text-align:left;vertical-align:top\"';\nconst rows = d.milestones.map(m => '<tr' + (m.movedDays > 0 ? ' style=\"background:#fdecea\"' : '') + '><td ' + td + '>' + esc(m.name) + '</td><td ' + td + '>' + esc(m.previousForecast || 'n/a') + '</td><td ' + td + '><b>' + esc(m.forecast) + '</b></td><td ' + td + '>' + (m.movedDays > 0 ? '<b style=\"color:#b00020\">+' + m.movedDays + ' days</b>' : (m.movedDays < 0 ? m.movedDays + ' days' : 'no change')) + '</td><td ' + td + '>' + (m.vsBaselineDays > 0 ? '+' + m.vsBaselineDays : m.vsBaselineDays) + ' vs baseline</td></tr>').join('');\nconst r = a.raidItem || {};\nconst html = '<div style=\"font-family:Segoe UI,Arial,sans-serif;font-size:14px;color:#222;max-width:760px\">'\n  + '<p style=\"font-size:12px;letter-spacing:1px;color:#b00020;margin:0\">SLIP ALERT · AI PROPOSES · YOU DECIDE</p>'\n  + '<h2 style=\"margin:4px 0\">' + esc(a.headline) + '</h2>'\n  + '<p style=\"color:#555;margin-top:0\">' + esc(d.project) + ' · ' + esc(d.today) + '</p>'\n  + '<table style=\"border-collapse:collapse;font-size:13px\"><tr><th ' + td + '>Milestone</th><th ' + td + '>Yesterday</th><th ' + td + '>Today</th><th ' + td + '>Moved</th><th ' + td + '>Baseline</th></tr>' + rows + '</table>'\n  + '<h3>What moved</h3><p>' + esc(a.whatMoved) + '</p>'\n  + '<h3>Knock-on risk</h3><p>' + esc(a.knockOnRisk) + '</p>'\n  + '<h3>Options (you choose)</h3><ol>' + (a.options || []).map(o => '<li><b>' + esc(o.option) + '</b><br><span style=\"color:#555\">Trade-off: ' + esc(o.tradeOff) + '</span></li>').join('') + '</ol>'\n  + '<h3>Proposed RAID entry (added if you acknowledge)</h3>'\n  + '<p>' + esc(r.raid_type) + ': <b>' + esc(r.title) + '</b> · Impact ' + esc(r.impact) + ' · Likelihood ' + esc(r.likelihood) + ' · Owner ' + esc(r.owner) + '<br>Mitigation: ' + esc(r.mitigation) + '</p>'\n  + '<p style=\"font-size:12px;color:#666\">The slip itself was detected by rules (forecast moved overnight), not by AI. Acknowledge to log the RAID entry. Dismiss if it is already handled. Either way the decision is logged and you will not be alerted again for this same change.</p>'\n  + '</div>';\nreturn [{ json: { subject: '[Slip alert] ' + d.project + ': ' + d.slips.map(s => s.name + ' +' + s.movedDays + 'd').join(', '), html } }];"
+        "jsCode": "// Email layout helpers: full width, left aligned, table-based so Outlook renders it consistently.\nconst esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst F = 'font-family:Segoe UI,Arial,Helvetica,sans-serif;color:#1f2937;';\nconst T = (t, sub) => '<p style=\"' + F + 'margin:0 0 4px 0;font-size:20px;font-weight:700;line-height:1.3\">' + t + '</p>' + (sub ? '<p style=\"' + F + 'margin:0 0 14px 0;font-size:13px;color:#6b7280\">' + sub + '</p>' : '');\nconst H = (t) => '<p style=\"' + F + 'margin:20px 0 8px 0;font-size:15px;font-weight:700\">' + t + '</p>';\nconst P = (t) => '<p style=\"' + F + 'margin:0 0 10px 0;font-size:14px;line-height:1.5\">' + t + '</p>';\nconst UL = (a) => (a && a.length) ? '<ul style=\"' + F + 'margin:0 0 10px 0;padding:0 0 0 20px;font-size:14px;line-height:1.5\">' + a.map(x => '<li style=\"margin:0 0 4px 0\">' + esc(x) + '</li>').join('') + '</ul>' : P('<em>None</em>');\nconst CELL = F + 'border:1px solid #d1d5db;padding:6px 8px;text-align:left;vertical-align:top;font-size:13px;line-height:1.4;';\nconst TBL = (head, rows) => '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;border-collapse:collapse;margin:0 0 10px 0\">' + (head ? '<tr>' + head.map(h => '<th style=\"' + CELL + 'background:#f3f4f6;font-weight:700\">' + h + '</th>').join('') + '</tr>' : '') + rows.map(r => '<tr>' + r.map(c => '<td style=\"' + CELL + '\">' + c + '</td>').join('') + '</tr>').join('') + '</table>';\nconst BOX = (t, line, bg) => '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;border-collapse:collapse;margin:0 0 12px 0\"><tr><td style=\"' + F + 'background:' + bg + ';border-left:4px solid ' + line + ';padding:10px 12px;font-size:14px;line-height:1.5\">' + t + '</td></tr></table>';\nconst PILL = (t, bg) => '<span style=\"background:' + bg + ';color:#ffffff;padding:2px 10px;border-radius:10px;font-weight:700;font-size:12px\">' + t + '</span>';\nconst BTN = '<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:16px 0\"><tr><td style=\"background:#1f4e79;border-radius:4px\"><a href=\"%%DECIDE_URL%%\" style=\"' + F + 'display:inline-block;padding:11px 22px;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none\">Review and decide</a></td></tr></table>';\nconst NOTE = (t) => '<p style=\"' + F + 'margin:16px 0 0 0;font-size:12px;line-height:1.5;color:#6b7280\">' + t + '</p>';\nconst WRAP = (inner) => '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;border-collapse:collapse\"><tr><td style=\"' + F + 'padding:0;text-align:left\">' + inner + '</td></tr></table>';\nconst RAG = { Green: '#1e7e34', Amber: '#b26a00', Red: '#b00020' };\nconst a = $input.first().json.output;\nconst d = $('Detect Changes (rules)').first().json;\nconst rows = d.milestones.map(m => [(m.movedDays > 0 ? '<b>' + esc(m.name) + '</b>' : esc(m.name)), esc(m.previousForecast || 'n/a'), '<b>' + esc(m.forecast) + '</b>', m.movedDays > 0 ? '<b style=\"color:#b00020\">+' + m.movedDays + ' days</b>' : (m.movedDays < 0 ? m.movedDays + ' days' : 'No change'), (m.vsBaselineDays > 0 ? '+' : '') + m.vsBaselineDays + ' days']);\nconst r = a.raidItem || {};\nconst body = T(esc(a.headline), esc(d.project) + ' · ' + esc(d.today))\n  + TBL(['Milestone', 'Yesterday', 'Today', 'Moved', 'vs baseline'], rows)\n  + BTN\n  + H('What moved') + P(esc(a.whatMoved))\n  + H('Knock-on risk') + P(esc(a.knockOnRisk))\n  + H('Options (you choose)') + TBL(['Option', 'Trade-off'], (a.options || []).map(o => ['<b>' + esc(o.option) + '</b>', esc(o.tradeOff)]))\n  + H('Proposed RAID entry (added if you acknowledge)') + TBL(null, [['<b>Type</b>', esc(r.raid_type)], ['<b>Title</b>', esc(r.title)], ['<b>Impact / likelihood</b>', esc(r.impact) + ' / ' + esc(r.likelihood)], ['<b>Owner</b>', esc(r.owner)], ['<b>Mitigation</b>', esc(r.mitigation)]])\n  + BTN\n  + NOTE('The slip was detected by rules (a forecast moved since yesterday), not by AI. Acknowledge to log the RAID entry, or dismiss if it is already handled. Your decision and comment are saved in the audit log, and the same change will not alert again.');\nreturn [{ json: { subject: '[Slip alert] ' + d.project + ': ' + d.slips.map(s => s.name + ' +' + s.movedDays + 'd').join(', '), html: WRAP(body) } }];\n"
       },
       "id": "532f81e3-7f4e-43b8-a817-ebe15ea5a8fd",
       "name": "Format Alert for PM",
@@ -282,58 +282,19 @@
     },
     {
       "parameters": {
-        "operation": "sendAndWait",
-        "toRecipients": "={{ $(\"Detect Changes (rules)\").first().json.approverEmail }}",
-        "subject": "={{ $json.subject }}",
-        "message": "={{ $json.html }}",
-        "approvalOptions": {
-          "values": {
-            "approvalType": "double",
-            "approveLabel": "Acknowledge and log to RAID",
-            "disapproveLabel": "Dismiss"
-          }
-        },
-        "options": {
-          "limitWaitTime": {
-            "values": {
-              "resumeUnit": "days"
-            }
-          },
-          "appendAttribution": false
-        }
-      },
-      "id": "8741ccfd-b73b-4888-b256-101a32710b34",
-      "name": "PM Approval Gate",
-      "type": "n8n-nodes-base.microsoftOutlook",
-      "typeVersion": 2,
-      "position": [
-        1328,
-        320
-      ],
-      "webhookId": "a0fa2998-b75c-4371-8b68-411c185f8767",
-      "credentials": {
-        "microsoftOutlookOAuth2Api": {
-          "id": "",
-          "name": "Microsoft Outlook account"
-        }
-      }
-    },
-    {
-      "parameters": {
         "conditions": {
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "loose",
-            "version": 1
+            "typeValidation": "loose"
           },
           "conditions": [
             {
-              "leftValue": "={{ $json.data.approved }}",
+              "leftValue": "={{ $json.Decision }}",
+              "rightValue": "Acknowledge",
               "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
+                "type": "string",
+                "operation": "equals"
               }
             }
           ],
@@ -468,7 +429,7 @@
             "run_id": "={{ $execution.id }}",
             "specialist": "Slip Alert (rules) + Impact Analyst",
             "proposal": "={{ $(\"Impact Analyst\").first().json.output.headline }}",
-            "decision": "Acknowledged",
+            "decision": "={{ \"Acknowledged\" + ($(\"Wait for PM Decision\").first().json.Comment ? \": \" + $(\"Wait for PM Decision\").first().json.Comment : \"\") }}",
             "decided_by": "PM",
             "write_back": "1 RAID entry added"
           },
@@ -553,7 +514,7 @@
             "run_id": "={{ $execution.id }}",
             "specialist": "Slip Alert (rules) + Impact Analyst",
             "proposal": "={{ $(\"Impact Analyst\").first().json.output.headline }}",
-            "decision": "Dismissed (or no response in 1 day)",
+            "decision": "={{ ($(\"Wait for PM Decision\").first().json.Decision ? \"Dismissed\" : \"No response in time\") + ($(\"Wait for PM Decision\").first().json.Comment ? \": \" + $(\"Wait for PM Decision\").first().json.Comment : \"\") }}",
             "decided_by": "PM",
             "write_back": "None"
           },
@@ -651,6 +612,77 @@
         16,
         336
       ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "toRecipients": "={{ $(\"Detect Changes (rules)\").first().json.approverEmail }}",
+        "subject": "={{ $json.subject }}",
+        "bodyContent": "={{ $json.html.replaceAll('%%DECIDE_URL%%', $execution.resumeFormUrl) }}",
+        "additionalFields": {
+          "bodyContentType": "html"
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        1288,
+        320
+      ],
+      "id": "2002ecdf-20ea-406d-9e02-8dc7da6122c0",
+      "name": "Send Decision Email",
+      "webhookId": "2e496885-fbeb-4e39-bad8-e48643938e58",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "form",
+        "formTitle": "Your decision",
+        "formDescription": "Choose what happens next. Nothing is written to any system until you submit this form.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Decision",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Acknowledge"
+                  },
+                  {
+                    "option": "Dismiss"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Comment",
+              "fieldType": "textarea",
+              "placeholder": "Optional. Saved in the audit log."
+            }
+          ]
+        },
+        "limitWaitTime": true,
+        "limitType": "afterTimeInterval",
+        "resumeAmount": 1,
+        "resumeUnit": "days"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1428,
+        460
+      ],
+      "id": "43e5de85-f7f5-4f88-ae8d-5d0f6f96db1a",
+      "name": "Wait for PM Decision",
+      "webhookId": "38fab83c-e4d7-4914-b91a-f39510103b6e"
     }
   ],
   "connections": {
@@ -773,18 +805,7 @@
       "main": [
         [
           {
-            "node": "PM Approval Gate",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "PM Approval Gate": {
-      "main": [
-        [
-          {
-            "node": "Acknowledged?",
+            "node": "Send Decision Email",
             "type": "main",
             "index": 0
           }
@@ -825,6 +846,28 @@
         [
           {
             "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Decision Email": {
+      "main": [
+        [
+          {
+            "node": "Wait for PM Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for PM Decision": {
+      "main": [
+        [
+          {
+            "node": "Acknowledged?",
             "type": "main",
             "index": 0
           }
@@ -871,15 +914,6 @@
       "description": "Only on slip days: cause, knock-on risk, options and one RAID entry"
     },
     {
-      "id": "5db778e9-b729-452a-b6f2-5cbd4d4923c2",
-      "name": "PM decides",
-      "nodeIds": [
-        "8741ccfd-b73b-4888-b256-101a32710b34",
-        "4b3e65ca-5e15-401b-bdd2-5a0a1862d9c7"
-      ],
-      "description": "Acknowledge or dismiss by email"
-    },
-    {
       "id": "96da6f03-c725-4a32-b376-6c1404097d2c",
       "name": "Act and log",
       "nodeIds": [
@@ -887,6 +921,16 @@
         "d9c35211-4890-4769-939f-c19100a68a30"
       ],
       "description": "Acknowledged: RAID entry and audit entry"
+    },
+    {
+      "id": "b10c9323-7c95-4472-b9ae-1bf80e839199",
+      "name": "PM decides",
+      "nodeNames": [
+        "Send Decision Email",
+        "Wait for PM Decision",
+        "Acknowledged?"
+      ],
+      "description": "Our own decision email; the PM opens a short form to approve or reject, with an optional comment."
     }
   ],
   "active": false

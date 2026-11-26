@@ -1,11 +1,13 @@
 # AI Proposes. The PM Decides.
 
-**An open-source agent team for project managers, built in n8n.**
-An orchestrator agent and four specialists do the weekly grunt work: status, schedule slippage, RAID, stakeholder comms. They bring the PM **one proposal pack** to approve or reject. Nothing is written to any system without the PM's OK, and every decision is logged.
+**Seven open-source AI agents for project managers, built in n8n.**
+They do the weekly grunt work: status reports, meeting actions, stakeholder updates, request triage, retros, RAID and schedule checks. Then they bring the PM **one clear proposal** to approve or reject. Nothing is written to any system without the PM's OK, and every decision is logged.
 
 > Let AI chase the updates. Let people make the decisions.
 
 `n8n` · `Agentic AI` · `Human-in-the-loop` · `Project Management` · `PMO`
+
+**New here? → [INSTALL.md](INSTALL.md)** walks you through everything step by step, even if you've never used n8n.
 
 ---
 
@@ -13,167 +15,99 @@ An orchestrator agent and four specialists do the weekly grunt work: status, sch
 
 Most "AI for PM" demos let the AI act on its own. In a real program that's a non-starter: status goes to executives, RAID logs get audited, and a wrong email to a sponsor costs trust.
 
-This project takes the opposite approach:
+These agents take the opposite approach:
 
 - **The agents do the gathering and drafting**, which is about 80% of the effort.
 - **The PM makes the call**, which is 100% of the accountability.
 
-## How it works
+## The agents
+
+| Folder | Agent | How it starts | What it proposes |
+|---|---|---|---|
+| [`agent-team/`](agent-team/) | **PM Agent Team** (flagship) | Every Friday, or on demand | An orchestrator briefs 4 specialists (Status, Schedule, RAID, Comms) and reviews their work into one proposal pack |
+| [`01-weekly-status-agent/`](01-weekly-status-agent/) | **Weekly Status** | Every Friday | A status report saved as an Outlook draft |
+| [`02-meeting-to-actions/`](02-meeting-to-actions/) | **Meeting → Actions** | The PM pastes a transcript into a form | Decisions, actions with owner, due date and supporting quote, risks, follow-up email |
+| [`03-stakeholder-translator/`](03-stakeholder-translator/) | **Stakeholder Translator** | The PM pastes one update into a form | Executive, team and client versions, checked by an independent leak checker |
+| [`04-intake-triage/`](04-intake-triage/) | **Intake Triage** | Anyone submits a request form | Rule-based priority, type, size, owner, duplicate check, reply draft |
+| [`05-retro-synthesizer/`](05-retro-synthesizer/) | **Retro Synthesizer** | Team gives anonymous feedback, PM asks for a synthesis | Themes, recurring problems, up to 3 measurable actions, team summary |
+| [`06-daily-slip-alert/`](06-daily-slip-alert/) | **Daily Slip Alert** | Every weekday at 7:30 | Only when a milestone moved: cause, knock-on risk, options, one RAID entry |
+| [`00-setup/`](00-setup/) | **Setup** (run once) | You click it once | Creates the 6 data tables the agents share, plus demo data |
+
+Every agent was **live-tested end to end** on fictional data. Each folder's README shows the test results, including the bugs the tests caught and how they were fixed.
+
+## How a decision works
 
 ```mermaid
 flowchart LR
-    subgraph SOR["Systems of record (read-only)"]
-        T[Project tracker]
-        R[RAID log]
-    end
-
-    subgraph CORE["Guardrails: scope · authority · audit"]
-        C[Context pack<br/>field filter + rule-based RAG]
-        O((Orchestrator<br/>agent))
-        S1[Status]
-        S2[Schedule]
-        S3[RAID]
-        S4[Comms]
-        C --> O
-        O <--> S1
-        O <--> S2
-        O <--> S3
-        O <--> S4
-    end
-
-    T --> C
-    R --> C
-    O -- proposal pack --> PM{{"PM approval gate<br/>Approve / Reject"}}
-    PM -- approved --> W[Write-back<br/>RAID log + draft update]
-    PM -- rejected --> L
-    W --> L[(Audit log)]
+    A[Agent gathers data<br/>read-only] --> B[Rules + AI<br/>build a proposal]
+    B --> E[/Decision email<br/>to the PM/]
+    E --> F{{Review and decide<br/>form}}
+    F -- Approve --> W[Write-back<br/>logs, drafts]
+    F -- Reject --> L
+    W --> L[(Audit log<br/>decision + comment)]
 ```
 
-**Sense → Analyse → Propose → PM approves → Act → Log**
+1. The agent emails the PM a clear, easy-to-scan proposal (example below).
+2. The PM clicks **Review and decide**. A short form opens with **Approve / Reject** and an optional **comment**.
+3. Only after **Approve** does the agent write anything: log entries, or Outlook **drafts** that are never sent automatically.
+4. Every decision, including rejections and "no response in time", is saved in the audit log with the PM's comment.
 
-| Step | What happens | Who |
-|---|---|---|
-| **Sense** | Read tasks, milestones, budget, team notes and the RAID log | Read-only connectors |
-| **Analyse** | Strip to the needed fields; calculate health; set RAG with fixed rules | Code, not AI |
-| **Propose** | Orchestrator **plans** and briefs 4 specialists, they work one at a time, then the orchestrator **reviews** their output for consistency | AI agents |
-| **PM approves** | PM gets an email with **Approve and apply** / **Reject** | **Human** |
-| **Act** | Add new RAID items; save stakeholder update as an Outlook draft | Only after approval |
-| **Log** | Record proposal, decision and what was written | Audit table |
+<p align="center"><img src="docs/email-preview-intake.png" alt="Example decision email from the Intake Triage agent" width="640"></p>
 
-## The specialists
+## Guardrails (all agents)
 
-| Agent | Job | Output |
-|---|---|---|
-| **Orchestrator** | Plans the week, briefs each specialist, then reviews their work and flags contradictions. Never writes. | Plan + proposal pack |
-| **Status** | Executive summary, done this week, next week | Summary + lists |
-| **Schedule** | Milestone slips, root cause, knock-on risk, one recovery action | Findings + recommendation |
-| **RAID** | Finds *new* risks/issues not already in the log | Up to 4 RAID items |
-| **Comms** | Sponsor update email, called last, using the others' findings | Subject + body |
-
-## Also in this repo
-
-| Agent | What the PM gives it | What it proposes | Status |
-|---|---|---|---|
-| [**02 · Meeting → Actions**](02-meeting-to-actions/) | A meeting transcript or notes, via a form | Decisions, actions with owner, due date and supporting quote, risks, open questions, follow-up email | ✅ Tested |
-| [**03 · Stakeholder Translator**](03-stakeholder-translator/) | One update, internal-only notes, chosen audiences | Executive, team and client versions, checked by an independent leak checker | ✅ Tested |
-| [**04 · Intake Triage**](04-intake-triage/) | Nothing: stakeholders submit via a form | Rule-based priority, type, size, owner, duplicate check, missing info, reply draft | ✅ Tested |
-| [**05 · Retro Synthesizer**](05-retro-synthesizer/) | Anonymous team feedback via a form, then the PM picks the retro | Themes with counts, recurring flags, up to 3 measurable actions, team summary | ✅ Tested |
-| [**06 · Daily Slip Alert**](06-daily-slip-alert/) | Nothing: runs every weekday at 7:30 | Only when a forecast moved: cause, knock-on, options, one RAID entry. Quiet days: no AI, no email | ✅ Tested |
-| [**Weekly Status (standalone)**](01-weekly-status-agent/) | Nothing, runs on a schedule | Weekly status report as an Outlook draft | ✅ Tested |
-
-## Proven on a live run
-
-Test run on the fictional *Project Atlas* (free Gemini key, about 2 minutes end to end):
-
-- **Rules set Red:** 7-day milestone slip, 1 critical task overdue, 1 blocked.
-- **Schedule specialist** noticed the dry run slipped 7 days but UAT only 2, so the buffer is being eaten.
-- **RAID specialist** proposed 3 genuinely new items and suggested upgrading an existing vendor risk to an Issue, without changing it on its own.
-- **PM approved** → 3 rows added to the RAID log, sponsor update saved as an Outlook draft, decision logged.
-
-**And the reason the gate exists:** the drafted sponsor email said *"we have reassigned resources"*, but that was only a recommendation. The PM catches this before it goes out. AI proposes. People decide.
-
-## Guardrails
-
-| Guardrail | How it's enforced |
+| Guardrail | How it works |
 |---|---|
-| **Read-only by default** | Connectors only read. The only writes sit behind the approval gate. |
-| **Field filter** | Agents receive a trimmed context pack, not raw tracker data. |
-| **AI can't change the RAG** | RAG comes from fixed rules in code. Agents are told it's final. |
-| **No invented facts** | Every prompt restricts agents to the context pack. |
-| **Human approval** | Email with Approve/Reject. No answer in 2 days means rejected. |
-| **The PM approves exactly what the specialists wrote** | RAID items and the sponsor email pass straight from the specialists to the PM. The orchestrator's review can comment but can't rewrite them. |
-| **Audit trail** | Every run logs the proposal, the decision and the write-back. |
+| **Human approval** | Nothing is written until the PM submits the decision form. No answer in time counts as a rejection. |
+| **Rules where judgement must be consistent** | RAG status, request priority and slip detection come from fixed rules in code. The AI explains; it doesn't decide. |
+| **No invented facts** | Every prompt limits the AI to the data it was given. Owners it can't identify are marked `UNASSIGNED`. |
+| **Drafts, never auto-send** | Every email to stakeholders is saved as an Outlook draft for the PM to edit and send. |
+| **Privacy** | The retro form is anonymous, the client version is leak-checked, and all sample data is fictional. |
+| **Audit trail** | Every run records the proposal, the decision, the comment and what was written. |
 
-### RAG rules
+## What you need
 
-| Status | Rule |
-|---|---|
-| 🔴 Red | Any milestone slipped more than 5 days, or 2+ critical tasks overdue |
-| 🟠 Amber | Any slip, overdue task, blocked task, or budget burn more than 10 points ahead of progress |
-| 🟢 Green | None of the above |
+- A free **n8n Cloud** trial (or your own n8n), a free **Google Gemini** API key, and a **Microsoft Outlook / Hotmail** account.
+- **Nothing to install on your computer** if you use n8n Cloud. Just a web browser.
+- About **45 minutes** the first time. **[INSTALL.md](INSTALL.md)** walks you through it.
 
-## Quick start (about 10 minutes)
+### Free-tier friendly
 
-> **Status:** v1.1 passed a live end-to-end test. Import [`workflow.json`](workflow.json) and you're running in about 10 minutes.
+Gemini's free tier allows about 5 AI requests a minute and a daily cap. The agents make **one AI call at a time** with a short pause in between (the `pauseSeconds` setting), so they stay under the limit. On a paid key, set `pauseSeconds` to 0 for faster runs.
 
-1. **Create two data tables** in n8n (Overview → Data tables):
-   - `pmd_raid_log`: `raid_type`, `title`, `impact`, `likelihood`, `owner`, `mitigation`, `status`, `source` (all text)
-   - `pmd_audit_log`: `run_id`, `specialist`, `proposal`, `decision`, `decided_by`, `write_back` (all text)
-2. **Import** `workflow.json` (Workflows → Import from file).
-3. **Connect credentials:** Google Gemini on the 5 model nodes, Microsoft Outlook on the approval and draft nodes.
-4. Open the **Settings** node: set `approverEmail` to your address. Leave `pauseSeconds` at 13 on a free Gemini key, or set it to 0 on a paid key.
-5. Click **Test workflow** and keep the tab open. In about 2 minutes you'll get an approval email for the fictional *Project Atlas*.
-6. Click **Approve and apply**, then check the RAID log, the audit log and your Outlook drafts. The run can take a minute or two to resume after your click.
-
-### Testing tip
-
-When you test with **Test workflow**, keep the workflow **open in the n8n editor** until you've clicked Approve or Reject in the email. n8n only listens for approval clicks on test runs while the editor is open; otherwise the link shows "No action required". Once a workflow is published and runs from its schedule or form, approval links work without the editor open.
-
-### Free-tier mode
-
-Gemini's free tier allows 5 requests a minute. The agents run **one at a time** with a short pause between calls, which keeps a run safely under that limit. It's slower (about 2 minutes) but costs nothing.
-
-To use real data, replace **Read Project Tracker** with Jira, Asana, Monday.com, Excel or Google Sheets, keeping the same field names.
-
-## Roadmap
-
-- [x] **v1:** orchestrator, 4 specialists, email approval gate, write-back, audit log
-- [x] **v1.1:** free-tier mode (paced calls), orchestrator plan + review, Settings node, live-tested
-- [x] **02 Meeting → Actions:** PM input form, evidence-backed actions, approval gate, live-tested
-- [x] **03 Stakeholder Translator:** exec / team / client versions + independent leak checker, live-tested
-- [x] **04 Intake Triage:** stakeholder form, rule-based priority, duplicate detection, live-tested (incl. reject path)
-- [x] **05 Retro Synthesizer:** anonymous feedback, minimum-responses rule, recurring-issue flags, live-tested
-- [x] **06 Daily Slip Alert:** snapshot comparison, rules decide when to alert, quiet days cost nothing, live-tested
-- [ ] Next: Teams approvals · Jira/Asana connectors · PII redaction · model router · cost dashboard
-- [ ] **v2:** Change-impact specialist · Teams approval · write-back to the tracker · Google Sheets connector
-- [ ] **v3:** PII redaction · model router (small model for drafts, large for analysis) · cost and cycle-time dashboard · Jira and Asana connectors
-
-## Repo contents
+## Repo layout
 
 ```
-workflow.json        n8n export (import this)
-workflow.sdk.ts      the same workflow as readable code
-docs/                screenshots, demo, design notes
-01-weekly-status-agent/   standalone version of the Status specialist
-02-meeting-to-actions/    transcript in, approved actions out
-03-stakeholder-translator/ one update in, three audience versions out
-04-intake-triage/          stakeholder requests in, triaged and routed
-05-retro-synthesizer/      anonymous feedback in, themes and actions out
-06-daily-slip-alert/       daily schedule check, alerts only when something moved
+INSTALL.md                  step-by-step setup guide for beginners
+00-setup/                   run once: creates the data tables + demo data
+agent-team/                 flagship: orchestrator + 4 specialists
+01-weekly-status-agent/     standalone weekly status report
+02-meeting-to-actions/      transcript in, approved actions out
+03-stakeholder-translator/  one update in, three audience versions out
+04-intake-triage/           stakeholder requests in, triaged and routed
+05-retro-synthesizer/       anonymous feedback in, themes and actions out
+06-daily-slip-alert/        daily schedule check, alerts only when something moved
+docs/                       example of the decision email (image + HTML)
 ```
+
+Each agent folder has a `workflow.json` (the file you import into n8n), a README and sample data.
 
 ## Design notes
 
-Built on the **orchestrator-workers** agent pattern: one agent plans and delegates, and specialists do focused work. It adds a mandatory human gate before any action. The design choices are mine, and so is everything in **Design decisions** below.
+- **Orchestrator-workers pattern.** In the agent team, one agent plans and briefs specialists, then reviews their output for consistency. Each specialist does one focused job, which keeps prompts short and results checkable.
+- **Rules for decisions that must be consistent.** RAG, priority and slip detection are deterministic, so the same data always gives the same answer and anyone can see why.
+- **One proposal pack, one decision.** The PM reviews everything in one email instead of approving four separate items.
+- **What the specialists wrote is what the PM approves.** RAID items and stakeholder emails pass straight through; the orchestrator can comment on them but can't rewrite them.
+- **Email first.** Everyone has email, so the approval works without extra tools. Teams approvals are on the roadmap.
 
-### Design decisions
+## Roadmap
 
-*In my own words:*
-
-- **Why the AI doesn't set the RAG:**
-- **Why one proposal pack instead of four separate approvals:**
-- **Why email approval first, not Teams:**
-- **What I'd change for a 50-project PMO:**
+- [x] PM Agent Team with orchestrator, 4 specialists, decision form and audit log
+- [x] Six single-purpose agents (01–06) and one-click Setup
+- [ ] Approvals in Microsoft Teams
+- [ ] Connectors for Jira, Asana and Google Sheets, with write-back to the tracker
+- [ ] Change-impact specialist
+- [ ] PII redaction, a model router (small model for drafts, larger for analysis), and a cost and cycle-time dashboard
 
 ---
 

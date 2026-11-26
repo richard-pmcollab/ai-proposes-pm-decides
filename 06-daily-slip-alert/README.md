@@ -65,15 +65,16 @@ flowchart LR
 
 ## Setup
 
-1. Create the data table `pmd_milestone_snapshot` with text columns: `milestone`, `forecast`, `baseline`, `captured_on`. It also uses the shared `pmd_raid_log` and `pmd_audit_log`.
+1. Run the **00 Setup** workflow once. It creates every data table this agent uses and adds demo data. New to n8n? Follow [INSTALL.md](../INSTALL.md) step by step.
 2. Import the workflow and connect **Google Gemini** and **Microsoft Outlook**.
 3. In **Settings**, set `approverEmail` and `alertOnSlipDays`.
 4. Replace **Read Project Tracker** with your real source, keeping `name`, `baseline`, `forecast` and `dependsOn` for each milestone.
 5. Run it once to create the first snapshot, then activate it. It runs Monday to Friday at 7:30.
 
+**When the approval email arrives:** click **Review and decide**, choose an option, add an optional comment (it goes into the audit log) and press **Submit**. Nothing is written anywhere until you submit.
+
 ## Files
 
 ```
 workflow.json     n8n export (import this)
-workflow.sdk.ts   the workflow as readable code
 ```

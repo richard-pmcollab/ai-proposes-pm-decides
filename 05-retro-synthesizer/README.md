@@ -62,15 +62,16 @@ It also produced 3 open questions to start the retro meeting and an appreciative
 
 ## Setup
 
-1. Create the data table `pmd_retro_feedback` with text columns: `retro`, `mood`, `went_well`, `to_improve`, `ideas`. It also uses the shared `pmd_action_log` and `pmd_audit_log`.
+1. Run the **00 Setup** workflow once. It creates every data table this agent uses and adds demo data. New to n8n? Follow [INSTALL.md](../INSTALL.md) step by step.
 2. Import the workflow and connect **Google Gemini** and **Microsoft Outlook**.
 3. In **Settings**, set `approverEmail`. Change `minResponses` if your team is larger.
 4. Activate the workflow and share the **Team Feedback Form** URL with the team. Keep the **PM Synthesize Form** URL for yourself.
+
+**When the approval email arrives:** click **Review and decide**, choose an option, add an optional comment (it goes into the audit log) and press **Submit**. Nothing is written anywhere until you submit.
 
 ## Files
 
 ```
 workflow.json                    n8n export (import this)
-workflow.sdk.ts                  the workflow as readable code
 sample-data/sample-feedback.md   six fictional responses with an anonymity trap
 ```

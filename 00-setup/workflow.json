@@ -1,0 +1,1085 @@
+{
+  "name": "AI Proposes, PM Decides: 00 Setup (run once)",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "edce97c7-7d10-4044-adca-636dfb2ab99b",
+      "name": "Run Setup Once"
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "pmd_raid_log",
+        "columns": {
+          "column": [
+            {
+              "name": "raid_type",
+              "type": "string"
+            },
+            {
+              "name": "title",
+              "type": "string"
+            },
+            {
+              "name": "impact",
+              "type": "string"
+            },
+            {
+              "name": "likelihood",
+              "type": "string"
+            },
+            {
+              "name": "owner",
+              "type": "string"
+            },
+            {
+              "name": "mitigation",
+              "type": "string"
+            },
+            {
+              "name": "status",
+              "type": "string"
+            },
+            {
+              "name": "source",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        272,
+        128
+      ],
+      "id": "7281252a-5aca-4928-9e6d-bfaa38692e83",
+      "name": "Create RAID Log",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "pmd_audit_log",
+        "columns": {
+          "column": [
+            {
+              "name": "run_id",
+              "type": "string"
+            },
+            {
+              "name": "specialist",
+              "type": "string"
+            },
+            {
+              "name": "proposal",
+              "type": "string"
+            },
+            {
+              "name": "decision",
+              "type": "string"
+            },
+            {
+              "name": "decided_by",
+              "type": "string"
+            },
+            {
+              "name": "write_back",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        128
+      ],
+      "id": "eafd1142-98fe-4ed7-8dc2-fac3fef4277a",
+      "name": "Create Audit Log",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "pmd_action_log",
+        "columns": {
+          "column": [
+            {
+              "name": "meeting",
+              "type": "string"
+            },
+            {
+              "name": "meeting_date",
+              "type": "string"
+            },
+            {
+              "name": "action",
+              "type": "string"
+            },
+            {
+              "name": "owner",
+              "type": "string"
+            },
+            {
+              "name": "due_date",
+              "type": "string"
+            },
+            {
+              "name": "status",
+              "type": "string"
+            },
+            {
+              "name": "source",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        128
+      ],
+      "id": "dd46fcb7-360d-4e66-bff0-bb7e01496694",
+      "name": "Create Action Log",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "pmd_intake_log",
+        "columns": {
+          "column": [
+            {
+              "name": "title",
+              "type": "string"
+            },
+            {
+              "name": "requester",
+              "type": "string"
+            },
+            {
+              "name": "request_type",
+              "type": "string"
+            },
+            {
+              "name": "size",
+              "type": "string"
+            },
+            {
+              "name": "priority",
+              "type": "string"
+            },
+            {
+              "name": "routed_to",
+              "type": "string"
+            },
+            {
+              "name": "status",
+              "type": "string"
+            },
+            {
+              "name": "source",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        944,
+        128
+      ],
+      "id": "8f0831b9-62ba-4bd6-9827-bf55b7d2367a",
+      "name": "Create Intake Log",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "pmd_retro_feedback",
+        "columns": {
+          "column": [
+            {
+              "name": "retro",
+              "type": "string"
+            },
+            {
+              "name": "mood",
+              "type": "string"
+            },
+            {
+              "name": "went_well",
+              "type": "string"
+            },
+            {
+              "name": "to_improve",
+              "type": "string"
+            },
+            {
+              "name": "ideas",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1168,
+        128
+      ],
+      "id": "56bd8fae-1ee6-4633-8a40-c8c331a28127",
+      "name": "Create Retro Feedback",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "pmd_milestone_snapshot",
+        "columns": {
+          "column": [
+            {
+              "name": "milestone",
+              "type": "string"
+            },
+            {
+              "name": "forecast",
+              "type": "string"
+            },
+            {
+              "name": "baseline",
+              "type": "string"
+            },
+            {
+              "name": "captured_on",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1392,
+        128
+      ],
+      "id": "08646af2-4d6a-4941-a2b0-cfeb23ff5a41",
+      "name": "Create Milestone Snapshot",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_raid_log"
+        },
+        "returnAll": false,
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        800,
+        416
+      ],
+      "id": "d87c9732-95b8-485b-88f8-3e72349bbd65",
+      "name": "Check RAID Log",
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_intake_log"
+        },
+        "returnAll": false,
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1024,
+        416
+      ],
+      "id": "03b6e42c-9718-48b5-80ca-83ac09eb88bc",
+      "name": "Check Intake Log",
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_retro_feedback"
+        },
+        "returnAll": false,
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1248,
+        416
+      ],
+      "id": "3c73fcca-7505-4d3f-b168-69a18ac7b387",
+      "name": "Check Retro Feedback",
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_milestone_snapshot"
+        },
+        "returnAll": false,
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1472,
+        416
+      ],
+      "id": "e9926962-db57-4d56-8727-e529800bc7d8",
+      "name": "Check Milestone Snapshot",
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Adds fictional demo data ONLY to tables that are still empty, so running Setup twice is safe.\nconst empty = (n) => $(n).all().filter(i => i.json && i.json.id).length === 0;\nconst out = [];\nif (empty('Check RAID Log')) [\n  { raid_type: 'Risk', title: 'Billing vendor sandbox access delayed', impact: 'High', likelihood: 'Medium', owner: 'R. Patel', mitigation: 'Weekly check-in with vendor account manager', status: 'Open', source: 'Demo data' },\n  { raid_type: 'Assumption', title: 'Sales reps available for 2 hours of training each', impact: 'Medium', likelihood: 'Medium', owner: 'L. Martin', mitigation: 'Confirm with sales leadership', status: 'Open', source: 'Demo data' }\n].forEach(r => out.push({ json: { target: 'raid', ...r } }));\nif (empty('Check Intake Log')) [\n  { title: 'Add regional sales breakdown to the pipeline dashboard', requester: 'Sales Ops', request_type: 'Change request', size: 'M', priority: 'P2', routed_to: 'A. Chen', status: 'In backlog', source: 'Demo data' },\n  { title: 'Training materials in French for Quebec reps', requester: 'HR', request_type: 'New work', size: 'L', priority: 'P3', routed_to: 'L. Martin', status: 'In backlog', source: 'Demo data' }\n].forEach(r => out.push({ json: { target: 'intake', ...r } }));\nif (empty('Check Retro Feedback')) [\n  ['3', 'Dashboards shipped early and the demo landed well with sales.', 'We found out about the vendor delay from the sponsor, not from our own tracking. Felt late.', 'A shared vendor-dependency tracker we check at standup.'],\n  ['2', 'Pairing on the data mapping helped.', 'Too many ad-hoc requests from sales hitting developers directly. Lost two afternoons.', 'All requests go through the intake form, no DMs.'],\n  ['4', 'Standups were short and useful this sprint.', 'Test environment was down twice and nobody owned getting it fixed.', 'Name an owner for the test environment each sprint.'],\n  ['2', 'Team helped each other when the cleanse slipped.', 'Cleanse work all sat on one person again. Same as last sprint.', 'Split the data cleanse across two people.'],\n  ['3', 'Clear go-live decision from the sponsor.', 'Requests coming in through chat with no priority. Hard to say no.', 'Publish the priority rules so people know what P1 means.'],\n  ['4', 'Dashboards early, nice recognition from sales leadership.', 'Vendor dependency surprised us. We need earlier warning.', '']\n].forEach(r => out.push({ json: { target: 'retro', retro: 'Atlas Sprint 14', mood: r[0], went_well: r[1], to_improve: r[2], ideas: r[3] } }));\nif (empty('Check Milestone Snapshot')) [\n  ['Data migration dry run', '2026-12-04', '2026-12-01'],\n  ['UAT start', '2026-12-17', '2026-12-15'],\n  ['Go-live', '2027-01-12', '2027-01-12']\n].forEach(r => out.push({ json: { target: 'snapshot', milestone: r[0], forecast: r[1], baseline: r[2], captured_on: 'demo' } }));\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1696,
+        416
+      ],
+      "id": "5d3fa53c-c03f-477d-bf48-46eb0d3befbd",
+      "name": "Demo Data for Empty Tables"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "outputKey": "raid",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.target }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "raid"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "intake",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.target }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "intake"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "retro",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.target }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "retro"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "snapshot",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.target }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "snapshot"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1920,
+        384
+      ],
+      "id": "1081d366-245d-4307-8fc7-902cd668db03",
+      "name": "Route Demo Rows"
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_raid_log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "raid_type": "={{ $json.raid_type }}",
+            "title": "={{ $json.title }}",
+            "impact": "={{ $json.impact }}",
+            "likelihood": "={{ $json.likelihood }}",
+            "owner": "={{ $json.owner }}",
+            "mitigation": "={{ $json.mitigation }}",
+            "status": "={{ $json.status }}",
+            "source": "={{ $json.source }}"
+          },
+          "schema": [
+            {
+              "id": "raid_type",
+              "displayName": "raid_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "impact",
+              "displayName": "impact",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "likelihood",
+              "displayName": "likelihood",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "owner",
+              "displayName": "owner",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "mitigation",
+              "displayName": "mitigation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2144,
+        128
+      ],
+      "id": "0a564a34-20c7-49c7-8308-7355003c22ac",
+      "name": "Add Demo RAID Rows"
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_intake_log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "title": "={{ $json.title }}",
+            "requester": "={{ $json.requester }}",
+            "request_type": "={{ $json.request_type }}",
+            "size": "={{ $json.size }}",
+            "priority": "={{ $json.priority }}",
+            "routed_to": "={{ $json.routed_to }}",
+            "status": "={{ $json.status }}",
+            "source": "={{ $json.source }}"
+          },
+          "schema": [
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "requester",
+              "displayName": "requester",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "request_type",
+              "displayName": "request_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "size",
+              "displayName": "size",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "routed_to",
+              "displayName": "routed_to",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2144,
+        320
+      ],
+      "id": "344042e8-22a2-42ee-9abc-d61ad695990f",
+      "name": "Add Demo Intake Rows"
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_retro_feedback"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "retro": "={{ $json.retro }}",
+            "mood": "={{ $json.mood }}",
+            "went_well": "={{ $json.went_well }}",
+            "to_improve": "={{ $json.to_improve }}",
+            "ideas": "={{ $json.ideas }}"
+          },
+          "schema": [
+            {
+              "id": "retro",
+              "displayName": "retro",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "mood",
+              "displayName": "mood",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "went_well",
+              "displayName": "went_well",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "to_improve",
+              "displayName": "to_improve",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ideas",
+              "displayName": "ideas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2144,
+        512
+      ],
+      "id": "6a59f8b7-8284-43ac-b42f-2538302464e5",
+      "name": "Add Demo Retro Feedback"
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_milestone_snapshot"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "milestone": "={{ $json.milestone }}",
+            "forecast": "={{ $json.forecast }}",
+            "baseline": "={{ $json.baseline }}",
+            "captured_on": "={{ $json.captured_on }}"
+          },
+          "schema": [
+            {
+              "id": "milestone",
+              "displayName": "milestone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "forecast",
+              "displayName": "forecast",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "baseline",
+              "displayName": "baseline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "captured_on",
+              "displayName": "captured_on",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2144,
+        704
+      ],
+      "id": "9ea7cebf-ce80-4178-ae75-677cecc69978",
+      "name": "Add Demo Snapshot"
+    },
+    {
+      "parameters": {
+        "content": "## 00 · Setup (run once)\nClick **Execute workflow**. It creates the 6 data tables every agent uses and adds a little fictional demo data so you can try each agent straight away.\n\n**Safe to run again:** existing tables are kept, and demo data is only added to tables that are still empty.\n\nCheck the result under **Overview → Data tables**: you should see 6 tables starting with pmd_.",
+        "color": 5,
+        "width": 608,
+        "height": 224
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -240
+      ],
+      "id": "945da6ac-d95c-423a-8ee7-d7933460531d",
+      "name": "Sticky Note"
+    }
+  ],
+  "connections": {
+    "Run Setup Once": {
+      "main": [
+        [
+          {
+            "node": "Create RAID Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create RAID Log": {
+      "main": [
+        [
+          {
+            "node": "Create Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Audit Log": {
+      "main": [
+        [
+          {
+            "node": "Create Action Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Action Log": {
+      "main": [
+        [
+          {
+            "node": "Create Intake Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Intake Log": {
+      "main": [
+        [
+          {
+            "node": "Create Retro Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Retro Feedback": {
+      "main": [
+        [
+          {
+            "node": "Create Milestone Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Milestone Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Check RAID Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check RAID Log": {
+      "main": [
+        [
+          {
+            "node": "Check Intake Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Intake Log": {
+      "main": [
+        [
+          {
+            "node": "Check Retro Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Retro Feedback": {
+      "main": [
+        [
+          {
+            "node": "Check Milestone Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Milestone Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Demo Data for Empty Tables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Demo Data for Empty Tables": {
+      "main": [
+        [
+          {
+            "node": "Route Demo Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Demo Rows": {
+      "main": [
+        [
+          {
+            "node": "Add Demo RAID Rows",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add Demo Intake Rows",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add Demo Retro Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add Demo Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodeGroups": [
+    {
+      "id": "89520702-71d9-4e78-b0b5-73f8db1324fe",
+      "name": "Create tables",
+      "nodeNames": [
+        "Create RAID Log",
+        "Create Audit Log",
+        "Create Action Log",
+        "Create Intake Log",
+        "Create Retro Feedback",
+        "Create Milestone Snapshot"
+      ],
+      "description": "Creates the 6 pmd_ data tables if they do not exist yet"
+    },
+    {
+      "id": "10ff653f-848e-4407-96d3-f2ac25d95946",
+      "name": "Add demo data",
+      "nodeNames": [
+        "Check RAID Log",
+        "Check Intake Log",
+        "Check Retro Feedback",
+        "Check Milestone Snapshot",
+        "Demo Data for Empty Tables",
+        "Route Demo Rows",
+        "Add Demo RAID Rows",
+        "Add Demo Intake Rows",
+        "Add Demo Retro Feedback",
+        "Add Demo Snapshot"
+      ],
+      "description": "Adds fictional demo rows, but only to tables that are still empty"
+    }
+  ]
+}

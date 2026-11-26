@@ -78,15 +78,16 @@ Sample: *"Show pipeline by region on the sales dashboard"* ([sample-data/sample-
 
 ## Setup
 
-1. Create the data table `pmd_intake_log` with text columns: `title`, `requester`, `request_type`, `size`, `priority`, `routed_to`, `status`, `source`. It also uses the shared `pmd_audit_log`.
+1. Run the **00 Setup** workflow once. It creates every data table this agent uses and adds demo data. New to n8n? Follow [INSTALL.md](../INSTALL.md) step by step.
 2. Import the workflow and connect **Google Gemini** and **Microsoft Outlook**.
 3. In **Settings**, set `approverEmail` and edit `routingTable` to your team's owners.
 4. Activate the workflow and share the **production** form URL with stakeholders.
+
+**When the approval email arrives:** click **Review and decide**, choose an option, add an optional comment (it goes into the audit log) and press **Submit**. Nothing is written anywhere until you submit.
 
 ## Files
 
 ```
 workflow.json                   n8n export (import this)
-workflow.sdk.ts                 the workflow as readable code
 sample-data/sample-request.md   fictional request with a duplicate trap
 ```

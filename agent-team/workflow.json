@@ -456,7 +456,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const p = $input.first().json.output;\nconst c = $('Build Context Pack').first().json;\nconst esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst ul = (a) => a && a.length ? '<ul>' + a.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' : '<p><em>None</em></p>';\nconst colors = { Green: '#1e7e34', Amber: '#b26a00', Red: '#b00020' };\nconst td = 'style=\"border:1px solid #ddd;padding:5px 8px;text-align:left;vertical-align:top\"';\nconst raid = p.newRaidItems && p.newRaidItems.length\n  ? '<table style=\"border-collapse:collapse;font-size:13px\"><tr><th ' + td + '>Type</th><th ' + td + '>Title</th><th ' + td + '>Impact</th><th ' + td + '>Likelihood</th><th ' + td + '>Owner</th><th ' + td + '>Mitigation</th></tr>'\n    + p.newRaidItems.map(r => '<tr><td ' + td + '>' + esc(r.raid_type) + '</td><td ' + td + '>' + esc(r.title) + '</td><td ' + td + '>' + esc(r.impact) + '</td><td ' + td + '>' + esc(r.likelihood) + '</td><td ' + td + '>' + esc(r.owner) + '</td><td ' + td + '>' + esc(r.mitigation) + '</td></tr>').join('') + '</table>'\n  : '<p><em>No new items</em></p>';\n\nconst html = '<div style=\"font-family:Segoe UI,Arial,sans-serif;font-size:14px;color:#222;max-width:760px\">'\n  + '<p style=\"font-size:12px;letter-spacing:1px;color:#b00020;margin:0\">AI PROPOSES · YOU DECIDE</p>'\n  + '<h2 style=\"margin:4px 0\">' + esc(p.headline) + '</h2>'\n  + '<p><span style=\"background:' + colors[c.health.rag] + ';color:#fff;padding:3px 10px;border-radius:10px;font-weight:600\">' + c.health.rag.toUpperCase() + '</span>&nbsp; ' + c.health.percentComplete + '% complete · ' + c.health.budgetUsedPct + '% budget used · rule reasons: ' + c.health.ragReasons.map(esc).join('; ') + '</p>'\n  + '<h3>1 · Status</h3><p>' + esc(p.status.executiveSummary) + '</p><b>Done</b>' + ul(p.status.doneThisWeek) + '<b>Next week</b>' + ul(p.status.nextWeek)\n  + '<h3>2 · Schedule</h3>' + ul(p.schedule.findings) + '<p><b>Recommendation:</b> ' + esc(p.schedule.recommendation) + '</p>'\n  + '<h3>3 · New RAID items (will be added to the RAID log if you approve)</h3>' + raid\n  + '<h3>4 · Stakeholder update (will be saved as an Outlook draft if you approve)</h3>'\n  + '<div style=\"border-left:3px solid #ccc;padding:6px 12px;background:#fafafa\"><b>' + esc(p.stakeholderUpdate.subject) + '</b><br>' + esc(p.stakeholderUpdate.body).replace(/\\n/g, '<br>') + '</div>'\n  + '<h3>Suggested changes to existing RAID entries (not applied automatically)</h3>' + ul(p.updatesToExisting)\n  + '<h3>Decisions needed</h3>' + ul(p.decisionsNeeded)\n  + (p.reviewNotes ? '<p><b>Orchestrator review notes:</b> ' + esc(p.reviewNotes) + '</p>' : '')\n  + '<p style=\"font-size:12px;color:#666\">Nothing has been written to any system yet. Approve to apply the RAID items and save the update as a draft. Reject to discard. Either way, your decision is logged.</p>'\n  + '</div>';\n\nreturn [{ json: { subject: '[Approval needed] ' + p.headline, html } }];"
+        "jsCode": "// Email layout helpers: full width, left aligned, table-based so Outlook renders it consistently.\nconst esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst F = 'font-family:Segoe UI,Arial,Helvetica,sans-serif;color:#1f2937;';\nconst T = (t, sub) => '<p style=\"' + F + 'margin:0 0 4px 0;font-size:20px;font-weight:700;line-height:1.3\">' + t + '</p>' + (sub ? '<p style=\"' + F + 'margin:0 0 14px 0;font-size:13px;color:#6b7280\">' + sub + '</p>' : '');\nconst H = (t) => '<p style=\"' + F + 'margin:20px 0 8px 0;font-size:15px;font-weight:700\">' + t + '</p>';\nconst P = (t) => '<p style=\"' + F + 'margin:0 0 10px 0;font-size:14px;line-height:1.5\">' + t + '</p>';\nconst UL = (a) => (a && a.length) ? '<ul style=\"' + F + 'margin:0 0 10px 0;padding:0 0 0 20px;font-size:14px;line-height:1.5\">' + a.map(x => '<li style=\"margin:0 0 4px 0\">' + esc(x) + '</li>').join('') + '</ul>' : P('<em>None</em>');\nconst CELL = F + 'border:1px solid #d1d5db;padding:6px 8px;text-align:left;vertical-align:top;font-size:13px;line-height:1.4;';\nconst TBL = (head, rows) => '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;border-collapse:collapse;margin:0 0 10px 0\">' + (head ? '<tr>' + head.map(h => '<th style=\"' + CELL + 'background:#f3f4f6;font-weight:700\">' + h + '</th>').join('') + '</tr>' : '') + rows.map(r => '<tr>' + r.map(c => '<td style=\"' + CELL + '\">' + c + '</td>').join('') + '</tr>').join('') + '</table>';\nconst BOX = (t, line, bg) => '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;border-collapse:collapse;margin:0 0 12px 0\"><tr><td style=\"' + F + 'background:' + bg + ';border-left:4px solid ' + line + ';padding:10px 12px;font-size:14px;line-height:1.5\">' + t + '</td></tr></table>';\nconst PILL = (t, bg) => '<span style=\"background:' + bg + ';color:#ffffff;padding:2px 10px;border-radius:10px;font-weight:700;font-size:12px\">' + t + '</span>';\nconst BTN = '<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:16px 0\"><tr><td style=\"background:#1f4e79;border-radius:4px\"><a href=\"%%DECIDE_URL%%\" style=\"' + F + 'display:inline-block;padding:11px 22px;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none\">Review and decide</a></td></tr></table>';\nconst NOTE = (t) => '<p style=\"' + F + 'margin:16px 0 0 0;font-size:12px;line-height:1.5;color:#6b7280\">' + t + '</p>';\nconst WRAP = (inner) => '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;border-collapse:collapse\"><tr><td style=\"' + F + 'padding:0;text-align:left\">' + inner + '</td></tr></table>';\nconst RAG = { Green: '#1e7e34', Amber: '#b26a00', Red: '#b00020' };\nconst p = $input.first().json.output;\nconst c = $('Build Context Pack').first().json;\nconst raidRows = (p.newRaidItems || []).map(r => [esc(r.raid_type), esc(r.title), esc(r.impact), esc(r.likelihood), esc(r.owner), esc(r.mitigation)]);\nconst body = T(esc(p.headline), esc(c.project.name) + ' · weekly review · ' + esc(c.reportDate))\n  + BOX(PILL(c.health.rag.toUpperCase(), RAG[c.health.rag]) + '&nbsp;&nbsp;' + c.health.percentComplete + '% complete · ' + c.health.budgetUsedPct + '% of budget used<br><span style=\"font-size:13px;color:#4b5563\">Why (rules): ' + c.health.ragReasons.map(esc).join('; ') + '</span>', RAG[c.health.rag], '#f9fafb')\n  + BTN\n  + H('1. Status') + P(esc(p.status.executiveSummary)) + P('<b>Done</b>') + UL(p.status.doneThisWeek) + P('<b>Next week</b>') + UL(p.status.nextWeek)\n  + H('2. Schedule') + UL(p.schedule.findings) + P('<b>Recommendation:</b> ' + esc(p.schedule.recommendation))\n  + H('3. New RAID items (added to the RAID log if you approve)') + (raidRows.length ? TBL(['Type', 'Title', 'Impact', 'Likelihood', 'Owner', 'Mitigation'], raidRows) : P('<em>No new items</em>'))\n  + H('4. Stakeholder update (saved as an Outlook draft if you approve)') + BOX('<b>' + esc(p.stakeholderUpdate.subject) + '</b><br>' + esc(p.stakeholderUpdate.body).replace(/\\n/g, '<br>'), '#9ca3af', '#f9fafb')\n  + H('Suggested changes to existing RAID entries (not applied automatically)') + UL(p.updatesToExisting)\n  + H('Decisions needed') + UL(p.decisionsNeeded)\n  + (p.reviewNotes ? P('<b>Orchestrator review notes:</b> ' + esc(p.reviewNotes)) : '')\n  + BTN\n  + NOTE('Nothing has been written to any system yet. Approve to add the RAID items and save the update as a draft. Reject to discard. Your decision and comment are saved in the audit log.');\nreturn [{ json: { subject: '[Approval needed] ' + p.headline, html: WRAP(body) } }];\n"
       },
       "id": "7f6e0e07-98ce-4b95-b17f-97ee3d9be86e",
       "name": "Format Proposal for PM",
@@ -469,59 +469,19 @@
     },
     {
       "parameters": {
-        "operation": "sendAndWait",
-        "toRecipients": "={{ $(\"Settings\").first().json.approverEmail }}",
-        "subject": "={{ $json.subject }}",
-        "message": "={{ $json.html }}",
-        "approvalOptions": {
-          "values": {
-            "approvalType": "double",
-            "approveLabel": "Approve and apply",
-            "disapproveLabel": "Reject"
-          }
-        },
-        "options": {
-          "limitWaitTime": {
-            "values": {
-              "resumeAmount": 2,
-              "resumeUnit": "days"
-            }
-          },
-          "appendAttribution": false
-        }
-      },
-      "id": "b52da39c-d96a-4b48-8436-fb600bcec3fd",
-      "name": "PM Approval Gate",
-      "type": "n8n-nodes-base.microsoftOutlook",
-      "typeVersion": 2,
-      "position": [
-        1328,
-        224
-      ],
-      "webhookId": "9dc59ac7-1a51-4b65-9ce5-cbc0ca11c32e",
-      "credentials": {
-        "microsoftOutlookOAuth2Api": {
-          "id": "",
-          "name": "Microsoft Outlook account"
-        }
-      }
-    },
-    {
-      "parameters": {
         "conditions": {
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "loose",
-            "version": 1
+            "typeValidation": "loose"
           },
           "conditions": [
             {
-              "leftValue": "={{ $json.data.approved }}",
+              "leftValue": "={{ $json.Decision }}",
+              "rightValue": "Approve",
               "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
+                "type": "string",
+                "operation": "equals"
               }
             }
           ],
@@ -576,7 +536,7 @@
             "run_id": "={{ $execution.id }}",
             "specialist": "Orchestrator + Status, Schedule, RAID, Comms",
             "proposal": "={{ $(\"Proposal Pack\").first().json.output.headline }}",
-            "decision": "Approved",
+            "decision": "={{ \"Approved\" + ($(\"Wait for PM Decision\").first().json.Comment ? \": \" + $(\"Wait for PM Decision\").first().json.Comment : \"\") }}",
             "decided_by": "PM",
             "write_back": "=Stakeholder draft saved; {{ ($(\"Proposal Pack\").first().json.output.newRaidItems || []).length }} RAID item(s) added"
           },
@@ -779,7 +739,7 @@
             "run_id": "={{ $execution.id }}",
             "specialist": "Orchestrator + Status, Schedule, RAID, Comms",
             "proposal": "={{ $(\"Proposal Pack\").first().json.output.headline }}",
-            "decision": "Rejected (or no response in 2 days)",
+            "decision": "={{ ($(\"Wait for PM Decision\").first().json.Decision ? \"Rejected\" : \"No response in time\") + ($(\"Wait for PM Decision\").first().json.Comment ? \": \" + $(\"Wait for PM Decision\").first().json.Comment : \"\") }}",
             "decided_by": "PM",
             "write_back": "None"
           },
@@ -877,6 +837,77 @@
         224,
         224
       ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "toRecipients": "={{ $(\"Settings\").first().json.approverEmail }}",
+        "subject": "={{ $json.subject }}",
+        "bodyContent": "={{ $json.html.replaceAll('%%DECIDE_URL%%', $execution.resumeFormUrl) }}",
+        "additionalFields": {
+          "bodyContentType": "html"
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        1288,
+        224
+      ],
+      "id": "a144943c-79ec-45ea-b0bb-13b31e579a3f",
+      "name": "Send Decision Email",
+      "webhookId": "51c81618-8984-4741-8927-7fd9f97f8782",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "form",
+        "formTitle": "Your decision",
+        "formDescription": "Choose what happens next. Nothing is written to any system until you submit this form.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Decision",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Approve"
+                  },
+                  {
+                    "option": "Reject"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Comment",
+              "fieldType": "textarea",
+              "placeholder": "Optional. Saved in the audit log."
+            }
+          ]
+        },
+        "limitWaitTime": true,
+        "limitType": "afterTimeInterval",
+        "resumeAmount": 2,
+        "resumeUnit": "days"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1428,
+        364
+      ],
+      "id": "420018f0-204b-49c0-a72a-6028d89d11ba",
+      "name": "Wait for PM Decision",
+      "webhookId": "45447bbf-8fab-4ce9-9461-53e968a1ba25"
     }
   ],
   "connections": {
@@ -1181,18 +1212,7 @@
       "main": [
         [
           {
-            "node": "PM Approval Gate",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "PM Approval Gate": {
-      "main": [
-        [
-          {
-            "node": "Approved?",
+            "node": "Send Decision Email",
             "type": "main",
             "index": 0
           }
@@ -1260,6 +1280,28 @@
           }
         ]
       ]
+    },
+    "Send Decision Email": {
+      "main": [
+        [
+          {
+            "node": "Wait for PM Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for PM Decision": {
+      "main": [
+        [
+          {
+            "node": "Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -1310,15 +1352,6 @@
       "description": "Orchestrator plans, four specialists work one at a time (free-tier safe), orchestrator reviews"
     },
     {
-      "id": "bcf84676-7d71-4515-90c8-3e66642921b6",
-      "name": "PM decides",
-      "nodeIds": [
-        "b52da39c-d96a-4b48-8436-fb600bcec3fd",
-        "63473646-89e3-4eab-8845-d9af4f506ee0"
-      ],
-      "description": "Approve or reject by email. Nothing is written anywhere before this point."
-    },
-    {
       "id": "3bef541f-3cad-4bcb-8e21-ff4bfba7c364",
       "name": "Act and log",
       "nodeIds": [
@@ -1328,6 +1361,16 @@
         "fa738801-6c71-405c-8cb4-8322ee6cc6fd"
       ],
       "description": "Only after approval: save the update as a draft, add RAID items, log the decision"
+    },
+    {
+      "id": "0f2a75c6-43e6-49a5-8195-fc6e7e3429a2",
+      "name": "PM decides",
+      "nodeNames": [
+        "Send Decision Email",
+        "Wait for PM Decision",
+        "Approved?"
+      ],
+      "description": "Our own decision email; the PM opens a short form to approve or reject, with an optional comment."
     }
   ],
   "active": false

@@ -73,15 +73,16 @@ On the sample transcript, the agent proposed **7 actions, 2 RAID items and 3 ope
 
 ## Setup
 
-1. Create the data table `pmd_action_log` with text columns: `meeting`, `meeting_date`, `action`, `owner`, `due_date`, `status`, `source`. It shares `pmd_raid_log` and `pmd_audit_log` with the main agent team.
+1. Run the **00 Setup** workflow once. It creates every data table this agent uses and adds demo data. New to n8n? Follow [INSTALL.md](../INSTALL.md) step by step.
 2. Import the workflow and connect **Google Gemini** and **Microsoft Outlook**.
 3. In **Settings**, set `approverEmail`. Keep `pauseSeconds` at 13 on a free Gemini key.
 4. Open **PM Input Form**, copy the form URL, paste the sample transcript and submit.
+
+**When the approval email arrives:** click **Review and decide**, choose an option, add an optional comment (it goes into the audit log) and press **Submit**. Nothing is written anywhere until you submit.
 
 ## Files
 
 ```
 workflow.json                    n8n export (import this)
-workflow.sdk.ts                  the workflow as readable code
 sample-data/sample-transcript.txt fictional meeting to test with
 ```
