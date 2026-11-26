@@ -1,0 +1,789 @@
+{
+  "name": "AI Proposes, PM Decides: 04 Intake Triage",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Submit a request to the project team",
+        "formDescription": "Tell us what you need. The PM reviews every request and you will hear back with next steps.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Your name",
+              "fieldName": "requesterName",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Your email",
+              "fieldType": "email",
+              "fieldName": "requesterEmail",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Your team or department",
+              "fieldName": "department",
+              "placeholder": "e.g. Sales Operations"
+            },
+            {
+              "fieldLabel": "Request title",
+              "fieldName": "title",
+              "placeholder": "One line, e.g. Add region filter to pipeline dashboard",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Describe what you need and why",
+              "fieldType": "textarea",
+              "fieldName": "description",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Business impact",
+              "fieldType": "dropdown",
+              "fieldName": "impact",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Blocks our work"
+                  },
+                  {
+                    "option": "Affects customers or revenue"
+                  },
+                  {
+                    "option": "Improvement / nice to have"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Needed by (optional)",
+              "fieldType": "date",
+              "fieldName": "neededBy"
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false,
+          "buttonLabel": "Submit request",
+          "path": "project-intake",
+          "respondWithOptions": {
+            "values": {
+              "formSubmittedText": "Thanks. Your request is with the project team and you will get a reply once the PM has reviewed it."
+            }
+          }
+        }
+      },
+      "id": "2f03bd2e-0e03-4069-ab82-a1a2fc98be96",
+      "name": "Request Intake Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        96
+      ],
+      "webhookId": "4fa279dd-b386-4b4b-8ee3-9759a7bea86e"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "approver",
+              "name": "approverEmail",
+              "value": "YOUR_EMAIL@example.com",
+              "type": "string"
+            },
+            {
+              "id": "routing",
+              "name": "routingTable",
+              "value": "Data and migration: M. Okafor | Integrations and APIs: R. Patel | Testing and UAT: S. Nguyen | Training and change: L. Martin | Reporting and dashboards: A. Chen | Anything else: the PM",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "b6ff0bed-9305-4377-8986-03e2300feb16",
+      "name": "Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        272,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_intake_log"
+        },
+        "returnAll": true
+      },
+      "id": "3efe3a14-77be-4e3c-a4b7-88d4f201f095",
+      "name": "Read Intake Log",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        224
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// PRIORITY IS SET BY RULES HERE, NOT BY THE AI.\n// P1: blocks work or hits customers/revenue AND needed within 14 days\n// P2: blocks work or hits customers/revenue, OR needed within 14 days\n// P3: everything else\nconst f = $('Settings').first().json;\nconst existing = $input.all().map(i => i.json).filter(r => r && r.title)\n  .map(r => ({ title: r.title, status: r.status, routed_to: r.routed_to }));\nconst serious = f.impact === 'Blocks our work' || f.impact === 'Affects customers or revenue';\nlet daysLeft = null;\nif (f.neededBy) {\n  const today = new Date(); today.setHours(0, 0, 0, 0);\n  daysLeft = Math.round((new Date(f.neededBy) - today) / 86400000);\n}\nconst soon = daysLeft !== null && daysLeft <= 14;\nconst priority = serious && soon ? 'P1' : (serious || soon ? 'P2' : 'P3');\nconst reason = (serious ? f.impact : 'Improvement') + (daysLeft === null ? ', no deadline' : ', needed in ' + daysLeft + ' day(s)');\nreturn [{ json: {\n  requesterName: String(f.requesterName || '').trim(),\n  requesterEmail: String(f.requesterEmail || '').trim(),\n  department: String(f.department || '').trim(),\n  title: String(f.title || '').trim(),\n  description: String(f.description || '').trim().slice(0, 15000),\n  impact: f.impact,\n  neededBy: f.neededBy || 'Not given',\n  priority, priorityReason: reason,\n  routingTable: f.routingTable,\n  existingRequests: existing,\n  approverEmail: f.approverEmail\n} }];"
+      },
+      "id": "cf85ca6d-d2d2-4848-9ed4-312b5048dbae",
+      "name": "Prepare and Prioritise",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are the intake analyst for a project team. Triage the request below for the PM.\n\n1. requestType: one of Bug, Change request, New work, Support, Question.\n2. summary: one plain sentence restating what is needed and why.\n3. size: S (under a day), M (a few days), L (1-3 weeks), XL (more than 3 weeks or needs its own project). Give a one-line reason. If the description is too vague to size, say so in sizeReason and pick the most likely size.\n4. routeTo: pick ONE owner from this routing table and explain why: {{ $json.routingTable }}\n5. possibleDuplicateOf: if the request overlaps with one of the EXISTING REQUESTS, give its exact title. Otherwise an empty string.\n6. missingInfo: questions the team needs answered before starting. Empty list if nothing is missing.\n7. replyToRequester: a short, warm, professional email to {{ $json.requesterName }}: thank them, restate your understanding in one line, say it has been logged as priority {{ $json.priority }} and the PM will confirm next steps, and ask the missingInfo questions if any. NEVER promise a delivery date. Under 120 words. Sign off as \"The project team\".\n\nPriority is already set by rules ({{ $json.priority }}: {{ $json.priorityReason }}). Do not change it.\nUse only what is in the request. Never invent details.\n\nREQUEST\nFrom: {{ $json.requesterName }} ({{ $json.department || \"department not given\" }})\nTitle: {{ $json.title }}\nImpact: {{ $json.impact }}\nNeeded by: {{ $json.neededBy }}\nDescription:\n{{ $json.description }}\n\nEXISTING REQUESTS:\n{{ JSON.stringify($json.existingRequests) }}",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "id": "27e31816-a50f-471b-9b0b-844d1c5cccc8",
+      "name": "Intake Analyst",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        800,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "c06ea9ec-7a6c-4548-96b6-420d961ddc22",
+      "name": "Gemini: Triage",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        816,
+        448
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{ \"requestType\": \"Change request\", \"summary\": \"One sentence restating what is needed and why\", \"size\": \"M\", \"sizeReason\": \"Why this size\", \"routeTo\": \"A. Chen\", \"routeReason\": \"Why this owner\", \"possibleDuplicateOf\": \"Title of an existing request, or empty\", \"missingInfo\": [\"Question to ask the requester\"], \"replyToRequester\": { \"subject\": \"Re: request title\", \"body\": \"Reply body\" } }"
+      },
+      "id": "ce481f5b-bdc5-43c2-9931-62a1856e8b63",
+      "name": "Triage Structure",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        944,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const t = $input.first().json.output;\nconst r = $('Prepare and Prioritise').first().json;\nconst esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst ul = (a) => a && a.length ? '<ul>' + a.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' : '<p><em>Nothing missing</em></p>';\nconst pc = { P1: '#b00020', P2: '#b26a00', P3: '#1e7e34' };\nconst td = 'style=\"border:1px solid #ddd;padding:5px 8px;text-align:left;vertical-align:top\"';\nconst row = (k, v) => '<tr><th ' + td + '>' + k + '</th><td ' + td + '>' + v + '</td></tr>';\nconst dup = t.possibleDuplicateOf ? '<p style=\"background:#fff3e0;border-left:4px solid #b26a00;padding:8px 12px\"><b>Possible duplicate</b> of an existing request: <i>' + esc(t.possibleDuplicateOf) + '</i>. Consider merging instead of logging a new item.</p>' : '';\nconst html = '<div style=\"font-family:Segoe UI,Arial,sans-serif;font-size:14px;color:#222;max-width:760px\">'\n  + '<p style=\"font-size:12px;letter-spacing:1px;color:#b00020;margin:0\">AI PROPOSES · YOU DECIDE</p>'\n  + '<h2 style=\"margin:4px 0\">New request: ' + esc(r.title) + '</h2>'\n  + '<p style=\"color:#555;margin-top:0\">From ' + esc(r.requesterName) + (r.department ? ' (' + esc(r.department) + ')' : '') + ' · ' + esc(r.requesterEmail) + '</p>'\n  + dup\n  + '<table style=\"border-collapse:collapse;font-size:13px\">'\n  + row('Priority (rules)', '<span style=\"background:' + pc[r.priority] + ';color:#fff;padding:2px 8px;border-radius:8px;font-weight:600\">' + r.priority + '</span> ' + esc(r.priorityReason))\n  + row('Type', esc(t.requestType))\n  + row('Summary', esc(t.summary))\n  + row('Size estimate', '<b>' + esc(t.size) + '</b>: ' + esc(t.sizeReason))\n  + row('Route to', '<b>' + esc(t.routeTo) + '</b>: ' + esc(t.routeReason))\n  + '</table>'\n  + '<h3>Missing information</h3>' + ul(t.missingInfo)\n  + '<h3>Reply to requester (saved as a draft if you approve)</h3>'\n  + '<div style=\"border-left:3px solid #ccc;padding:6px 12px;background:#fafafa\"><b>' + esc(t.replyToRequester.subject) + '</b><br>' + esc(t.replyToRequester.body).replace(/\\n/g, '<br>') + '</div>'\n  + '<h3>Original request</h3><div style=\"font-size:13px;color:#444;border-left:3px solid #eee;padding:6px 12px\">' + esc(r.description).replace(/\\n/g, '<br>') + '</div>'\n  + '<p style=\"font-size:12px;color:#666\">Nothing has been logged yet. Approve to add it to the intake log and save the reply as a draft. Reject to discard (no reply is drafted). Your decision is logged either way.</p>'\n  + '</div>';\nreturn [{ json: { subject: '[Approval needed] ' + r.priority + ' request: ' + r.title + (t.possibleDuplicateOf ? ' (possible duplicate)' : ''), html } }];"
+      },
+      "id": "29e5358b-8796-4cb0-805c-a908ba20c955",
+      "name": "Format Proposal for PM",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1152,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "toRecipients": "={{ $(\"Prepare and Prioritise\").first().json.approverEmail }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.html }}",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "Accept and log",
+            "disapproveLabel": "Reject"
+          }
+        },
+        "options": {
+          "limitWaitTime": {
+            "values": {
+              "resumeAmount": 3,
+              "resumeUnit": "days"
+            }
+          },
+          "appendAttribution": false
+        }
+      },
+      "id": "d044320d-6fd5-40a0-8828-aea28e9b9e76",
+      "name": "PM Approval Gate",
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        224
+      ],
+      "webhookId": "92395e6e-5efd-4d36-a6f0-6694e32352f5",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.data.approved }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0bcd2bac-98e6-4c1c-a3ce-392fb88fd4f9",
+      "name": "Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1552,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_intake_log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "title": "={{ $(\"Prepare and Prioritise\").first().json.title }}",
+            "requester": "={{ $(\"Prepare and Prioritise\").first().json.requesterName }}",
+            "request_type": "={{ $(\"Intake Analyst\").first().json.output.requestType }}",
+            "size": "={{ $(\"Intake Analyst\").first().json.output.size }}",
+            "priority": "={{ $(\"Prepare and Prioritise\").first().json.priority }}",
+            "routed_to": "={{ $(\"Intake Analyst\").first().json.output.routeTo }}",
+            "status": "Accepted",
+            "source": "=Intake run {{ $execution.id }} (PM approved)"
+          },
+          "schema": [
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "requester",
+              "displayName": "requester",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "request_type",
+              "displayName": "request_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "size",
+              "displayName": "size",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "routed_to",
+              "displayName": "routed_to",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "36ff13f5-7d86-4a75-bbf3-2147a059fe65",
+      "name": "Write-back: Add to Intake Log",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1856,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ $(\"Intake Analyst\").first().json.output.replyToRequester.subject }}",
+        "bodyContent": "={{ $(\"Intake Analyst\").first().json.output.replyToRequester.body }}",
+        "additionalFields": {
+          "bodyContentType": "Text",
+          "toRecipients": "={{ $(\"Prepare and Prioritise\").first().json.requesterEmail }}"
+        }
+      },
+      "id": "5be76ca6-eed7-4d97-9a29-fdc7b930fd03",
+      "name": "Write-back: Save Reply as Draft",
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        128
+      ],
+      "webhookId": "62ae34ed-8166-4d23-a4d6-d165be836171",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_audit_log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $execution.id }}",
+            "specialist": "Intake Analyst",
+            "proposal": "={{ $(\"Prepare and Prioritise\").first().json.priority }} request: {{ $(\"Prepare and Prioritise\").first().json.title }}",
+            "decision": "Accepted",
+            "decided_by": "PM",
+            "write_back": "=Logged to intake, routed to {{ $(\"Intake Analyst\").first().json.output.routeTo }}, reply draft saved"
+          },
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "specialist",
+              "displayName": "specialist",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proposal",
+              "displayName": "proposal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "decision",
+              "displayName": "decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "decided_by",
+              "displayName": "decided_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "write_back",
+              "displayName": "write_back",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9c14d8d1-a7a9-4cfc-b970-943481bf094b",
+      "name": "Log Approval",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2304,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_audit_log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $execution.id }}",
+            "specialist": "Intake Analyst",
+            "proposal": "={{ $(\"Prepare and Prioritise\").first().json.priority }} request: {{ $(\"Prepare and Prioritise\").first().json.title }}",
+            "decision": "Rejected (or no response in 3 days)",
+            "decided_by": "PM",
+            "write_back": "None"
+          },
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "specialist",
+              "displayName": "specialist",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proposal",
+              "displayName": "proposal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "decision",
+              "displayName": "decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "decided_by",
+              "displayName": "decided_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "write_back",
+              "displayName": "write_back",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "96e03ff2-bfdf-460c-9397-b5bd30cefe9e",
+      "name": "Log Rejection",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1968,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 04 · Intake Triage\n**Input:** share the form link with stakeholders. Anyone can submit a request.\n\n**Rules** set the priority (impact + deadline). The **Intake Analyst** classifies it, estimates size, picks an owner from your routing table, spots duplicates, lists missing information and drafts a reply. The PM gets one approval email.\n\n**Guardrails:** priority by rules, not AI · duplicate check against the intake log · reply never promises a date · nothing logged or drafted before approval · audit log",
+        "height": 352,
+        "width": 880,
+        "color": 5
+      },
+      "id": "e3b2bf75-29ff-495b-a829-f061cd247a05",
+      "name": "Sticky Note 22e05b91",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Request Intake Form": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "Read Intake Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Intake Log": {
+      "main": [
+        [
+          {
+            "node": "Prepare and Prioritise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare and Prioritise": {
+      "main": [
+        [
+          {
+            "node": "Intake Analyst",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Intake Analyst": {
+      "main": [
+        [
+          {
+            "node": "Format Proposal for PM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini: Triage": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Intake Analyst",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Triage Structure": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Intake Analyst",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Proposal for PM": {
+      "main": [
+        [
+          {
+            "node": "PM Approval Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PM Approval Gate": {
+      "main": [
+        [
+          {
+            "node": "Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved?": {
+      "main": [
+        [
+          {
+            "node": "Write-back: Add to Intake Log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Rejection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write-back: Add to Intake Log": {
+      "main": [
+        [
+          {
+            "node": "Write-back: Save Reply as Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write-back: Save Reply as Draft": {
+      "main": [
+        [
+          {
+            "node": "Log Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "nodeGroups": [
+    {
+      "id": "77cf819e-9013-45a3-8f1a-3e027950db8f",
+      "name": "Input and rules",
+      "nodeIds": [
+        "b6ff0bed-9305-4377-8986-03e2300feb16",
+        "3efe3a14-77be-4e3c-a4b7-88d4f201f095",
+        "cf85ca6d-d2d2-4848-9ed4-312b5048dbae"
+      ],
+      "description": "Settings and routing table, existing requests for duplicate checks, rule-based priority"
+    },
+    {
+      "id": "3d6f6129-bfb0-4e1c-af40-f82724271ac1",
+      "name": "Propose",
+      "nodeIds": [
+        "27e31816-a50f-471b-9b0b-844d1c5cccc8",
+        "c06ea9ec-7a6c-4548-96b6-420d961ddc22",
+        "ce481f5b-bdc5-43c2-9931-62a1856e8b63",
+        "29e5358b-8796-4cb0-805c-a908ba20c955"
+      ],
+      "description": "Intake Analyst classifies, sizes, routes, spots duplicates and drafts the reply"
+    },
+    {
+      "id": "5a5a5bd2-9731-4428-a6b0-a8ab13497b88",
+      "name": "PM decides",
+      "nodeIds": [
+        "d044320d-6fd5-40a0-8828-aea28e9b9e76",
+        "0bcd2bac-98e6-4c1c-a3ce-392fb88fd4f9"
+      ],
+      "description": "Accept or reject by email. Nothing is logged before this point."
+    },
+    {
+      "id": "c1d5d6bd-6546-459b-b1e1-72f790569b9b",
+      "name": "Act and log",
+      "nodeIds": [
+        "36ff13f5-7d86-4a75-bbf3-2147a059fe65",
+        "5be76ca6-eed7-4d97-9a29-fdc7b930fd03",
+        "9c14d8d1-a7a9-4cfc-b970-943481bf094b"
+      ],
+      "description": "Only after approval: intake log entry, reply draft to the requester, audit entry"
+    }
+  ],
+  "active": false
+}

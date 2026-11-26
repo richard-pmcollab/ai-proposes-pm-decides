@@ -3,7 +3,7 @@
 > Stakeholders submit requests through a form. Rules set the priority. The agent classifies, sizes, routes, spots duplicates and drafts the reply. **The PM accepts or rejects before anything is logged or sent.**
 
 **Built with:** n8n · Google Gemini · Microsoft Outlook · n8n Data tables
-**Status:** ✅ live-tested end to end, including the **reject** path (see results below).
+**Status:** ✅ live-tested end to end, including the **reject** path. Import [`workflow.json`](workflow.json).
 
 ---
 
@@ -86,6 +86,7 @@ Sample: *"Show pipeline by region on the sales dashboard"* ([sample-data/sample-
 ## Files
 
 ```
+workflow.json                   n8n export (import this)
 workflow.sdk.ts                 the workflow as readable code
 sample-data/sample-request.md   fictional request with a duplicate trap
 ```
