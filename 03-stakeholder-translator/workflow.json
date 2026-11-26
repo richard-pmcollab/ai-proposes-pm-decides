@@ -1,0 +1,784 @@
+{
+  "name": "AI Proposes, PM Decides: 03 Stakeholder Translator",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Stakeholder Translator",
+        "formDescription": "Paste one update. The agent rewrites it for each audience you pick, then checks the client version for anything internal. You approve before any draft is saved.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Project name",
+              "fieldName": "projectName",
+              "placeholder": "e.g. Project Atlas",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "The update (raw notes, status report, anything)",
+              "fieldType": "textarea",
+              "fieldName": "update",
+              "placeholder": "Paste what happened this week",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Internal only: must NOT reach the client",
+              "fieldType": "textarea",
+              "fieldName": "internalOnly",
+              "placeholder": "e.g. budget overrun, staffing problems, vendor dispute, internal blame"
+            },
+            {
+              "fieldLabel": "Audiences",
+              "fieldType": "checkbox",
+              "fieldName": "audiences",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Executive"
+                  },
+                  {
+                    "option": "Team"
+                  },
+                  {
+                    "option": "Client"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Client name (if writing to a client)",
+              "fieldName": "clientName",
+              "placeholder": "e.g. Northwind Retail"
+            },
+            {
+              "fieldLabel": "Executive recipients",
+              "fieldName": "execTo",
+              "placeholder": "emails, comma separated (optional)"
+            },
+            {
+              "fieldLabel": "Team recipients",
+              "fieldName": "teamTo",
+              "placeholder": "emails, comma separated (optional)"
+            },
+            {
+              "fieldLabel": "Client recipients",
+              "fieldName": "clientTo",
+              "placeholder": "emails, comma separated (optional)"
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false,
+          "buttonLabel": "Translate",
+          "path": "stakeholder-translator",
+          "respondWithOptions": {
+            "values": {
+              "formSubmittedText": "Got it. Your versions will arrive by email for approval in about a minute."
+            }
+          }
+        }
+      },
+      "id": "21c6f0ad-7600-4f03-a74c-9a2639377a93",
+      "name": "PM Input Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        96
+      ],
+      "webhookId": "87423a8c-5141-492c-b7b4-3dd23069542a"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "approver",
+              "name": "approverEmail",
+              "value": "YOUR_EMAIL@example.com",
+              "type": "string"
+            },
+            {
+              "id": "pause",
+              "name": "pauseSeconds",
+              "value": 13,
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "a36f3f9d-825f-4484-954b-b1fc5d8d2fee",
+      "name": "Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        272,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const f = $input.first().json;\nconst emails = (s) => String(s || '').split(/[,;\\s]+/).map(x => x.trim()).filter(x => x.includes('@'));\nlet aud = f.audiences;\nif (typeof aud === 'string') aud = aud.split(',');\naud = (aud || []).map(a => String(a).trim()).filter(Boolean);\nreturn [{ json: {\n  projectName: String(f.projectName || '').trim(),\n  update: String(f.update || '').trim().slice(0, 30000),\n  internalOnly: String(f.internalOnly || '').trim(),\n  audiences: aud,\n  wantExec: aud.includes('Executive'),\n  wantTeam: aud.includes('Team'),\n  wantClient: aud.includes('Client'),\n  clientName: String(f.clientName || 'the client').trim() || 'the client',\n  recipients: { Executive: emails(f.execTo), Team: emails(f.teamTo), Client: emails(f.clientTo) },\n  approverEmail: f.approverEmail,\n  pauseSeconds: f.pauseSeconds\n} }];"
+      },
+      "id": "e465edfb-1d7b-488d-bdc8-8a03c4fc5d35",
+      "name": "Prepare Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a senior PM's communications specialist. Rewrite ONE project update for different audiences. Same facts, different framing. Never invent facts, dates or numbers.\n\nWrite ONLY the versions marked YES. For versions marked NO return an empty subject and body.\n\nEXECUTIVE ({{ $json.wantExec ? \"YES\" : \"NO\" }}): under 120 words. Lead with status and the one thing they must know or decide. Business impact, not task detail. Ask for a decision explicitly if one is needed.\nTEAM ({{ $json.wantTeam ? \"YES\" : \"NO\" }}): under 200 words. What changed, who does what next, dates. Direct and practical. Recognise good work where the update mentions it.\nCLIENT ({{ $json.wantClient ? \"YES\" : \"NO\" }}) for {{ $json.clientName }}: under 150 words. Professional and calm. What they will see, what we are doing, what we need from them. NEVER include anything from the INTERNAL ONLY section, internal blame, staffing problems, internal budget figures or vendor disputes.\n\nPlain text, short paragraphs. Sign off as \"The {{ $json.projectName }} team\".\n\nPROJECT: {{ $json.projectName }}\n\nTHE UPDATE:\n{{ $json.update }}\n\nINTERNAL ONLY (use for exec and team if relevant; NEVER for client):\n{{ $json.internalOnly || \"None given\" }}",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "id": "943a5213-a799-4da8-8aea-988bfff1423b",
+      "name": "Translator",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        800,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "bc5c177d-ae60-4af5-893b-2b648998466b",
+      "name": "Gemini: Translate",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        816,
+        448
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{ \"executive\": { \"subject\": \"Subject\", \"body\": \"Body\" }, \"team\": { \"subject\": \"Subject\", \"body\": \"Body\" }, \"client\": { \"subject\": \"Subject\", \"body\": \"Body\" } }"
+      },
+      "id": "97b3f46c-d5e7-4d49-9e55-e219870dfc38",
+      "name": "Versions Structure",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        944,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "amount": "={{ $(\"Prepare Input\").first().json.pauseSeconds }}"
+      },
+      "id": "473b4016-5c79-4b35-8b85-a51672d3fdd1",
+      "name": "Pace",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1152,
+        224
+      ],
+      "webhookId": "8f5934ec-0946-4838-b6b1-a751e804ce9c"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a strict reviewer. Check the drafted versions below against the sources.\n\nVALID SOURCES: the SOURCE UPDATE is valid for every audience. The INTERNAL ONLY notes are valid for the Executive and Team versions, so do NOT flag internal facts that appear there. Internal facts are only a problem in the Client version.\n\n1. CLIENT LEAKS: does the client version contain anything from INTERNAL ONLY, or internal blame, staffing problems, internal budget figures, or vendor disputes? Quote the exact words. If there is no client version, clientSafe is true.\n2. FACT CHANGES: does any version state something that contradicts its valid sources, or add a fact (date, number, commitment) that is in neither valid source? List each one.\n\nBe precise. Do not flag tone or style. Empty lists if nothing is wrong.\n\nSOURCE UPDATE:\n{{ $(\"Prepare Input\").first().json.update }}\n\nINTERNAL ONLY:\n{{ $(\"Prepare Input\").first().json.internalOnly || \"None given\" }}\n\nDRAFTED VERSIONS:\n{{ JSON.stringify($(\"Translator\").first().json.output) }}",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "id": "1b8f33a4-6d3c-4fa0-a2d2-26790ac59bfb",
+      "name": "Leak Checker",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1376,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0
+        }
+      },
+      "id": "5383613e-7481-4d72-a5d0-5a29c40f25fa",
+      "name": "Gemini: Leak Check",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        1392,
+        448
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{ \"clientSafe\": true, \"issues\": [{ \"audience\": \"Client\", \"problem\": \"Mentions the budget overrun, which is internal only\", \"quote\": \"we are 12% over budget\" }], \"factChanges\": [{ \"audience\": \"Executive\", \"problem\": \"Says the dry run is on time; the update says it slipped 7 days\" }] }"
+      },
+      "id": "d1cb1f07-8810-48c7-96d5-7e2bb17f6f1e",
+      "name": "Leak Check Structure",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1520,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const v = $('Translator').first().json.output;\nconst chk = $input.first().json.output || {};\nconst inp = $('Prepare Input').first().json;\nconst esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst issues = (chk.issues || []).concat((chk.factChanges || []).map(x => ({ audience: x.audience, problem: 'Fact check: ' + x.problem, quote: '' })));\nconst card = (label, key, want) => {\n  if (!want) return '';\n  const x = v[key] || {};\n  const to = inp.recipients[label] || [];\n  const mine = issues.filter(i => String(i.audience).toLowerCase() === label.toLowerCase());\n  return '<h3 style=\"margin-bottom:4px\">' + label + (mine.length ? ' <span style=\"color:#b00020\">⚠ ' + mine.length + ' flag(s)</span>' : ' <span style=\"color:#1e7e34\">✓ no flags</span>') + '</h3>'\n    + '<p style=\"font-size:12px;color:#666;margin:0\">Draft to: ' + (to.length ? esc(to.join(', ')) : 'no recipients yet (add them in Outlook)') + '</p>'\n    + '<div style=\"border-left:3px solid #ccc;padding:6px 12px;background:#fafafa;margin:6px 0\"><b>' + esc(x.subject) + '</b><br>' + esc(x.body).replace(/\\n/g, '<br>') + '</div>'\n    + (mine.length ? '<ul style=\"color:#b00020\">' + mine.map(i => '<li>' + esc(i.problem) + (i.quote ? ': <i>\"' + esc(i.quote) + '\"</i>' : '') + '</li>').join('') + '</ul>' : '');\n};\nconst banner = issues.length\n  ? '<p style=\"background:#fdecea;border-left:4px solid #b00020;padding:8px 12px\"><b>The leak checker raised ' + issues.length + ' flag(s).</b> Read them before approving. If a flag is real, reject and resubmit with clearer internal-only notes.</p>'\n  : '<p style=\"background:#e8f5e9;border-left:4px solid #1e7e34;padding:8px 12px\">Leak checker: no internal information found in the client version and no fact changes.</p>';\nconst html = '<div style=\"font-family:Segoe UI,Arial,sans-serif;font-size:14px;color:#222;max-width:760px\">'\n  + '<p style=\"font-size:12px;letter-spacing:1px;color:#b00020;margin:0\">AI PROPOSES · YOU DECIDE</p>'\n  + '<h2 style=\"margin:4px 0\">' + esc(inp.projectName) + ': update for ' + esc(inp.audiences.join(', ')) + '</h2>'\n  + banner\n  + card('Executive', 'executive', inp.wantExec)\n  + card('Team', 'team', inp.wantTeam)\n  + card('Client', 'client', inp.wantClient)\n  + '<p style=\"font-size:12px;color:#666\">Nothing has been saved yet. Approve to save each version as an Outlook draft (never sent automatically). Reject to discard. Your decision is logged either way.</p>'\n  + '</div>';\nreturn [{ json: { subject: '[Approval needed] ' + inp.projectName + ' update for ' + inp.audiences.join(', ') + (issues.length ? ' (' + issues.length + ' flag(s))' : ''), html, flags: issues.length } }];"
+      },
+      "id": "2a8048eb-53a6-49db-8218-da7565dff78f",
+      "name": "Format Proposal for PM",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1728,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "toRecipients": "={{ $(\"Prepare Input\").first().json.approverEmail }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.html }}",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "Approve and save drafts",
+            "disapproveLabel": "Reject"
+          }
+        },
+        "options": {
+          "limitWaitTime": {
+            "values": {
+              "resumeAmount": 2,
+              "resumeUnit": "days"
+            }
+          },
+          "appendAttribution": false
+        }
+      },
+      "id": "c3e0ed8f-ad45-4853-a1c6-1e0f77cb636a",
+      "name": "PM Approval Gate",
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        224
+      ],
+      "webhookId": "67b04095-568e-4126-b934-f171fabdcf0c",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.data.approved }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8db8b7bf-dead-4332-82e5-9ca5c569d63c",
+      "name": "Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1552,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const v = $('Translator').first().json.output;\nconst inp = $('Prepare Input').first().json;\nconst out = [];\nif (inp.wantExec && v.executive && v.executive.body) out.push({ json: { audience: 'Executive', subject: v.executive.subject, body: v.executive.body, to: inp.recipients.Executive.join(',') } });\nif (inp.wantTeam && v.team && v.team.body) out.push({ json: { audience: 'Team', subject: v.team.subject, body: v.team.body, to: inp.recipients.Team.join(',') } });\nif (inp.wantClient && v.client && v.client.body) out.push({ json: { audience: 'Client', subject: v.client.subject, body: v.client.body, to: inp.recipients.Client.join(',') } });\nreturn out;"
+      },
+      "id": "28111b5b-e98b-4f97-8449-f53b38c03a8f",
+      "name": "Split Approved Versions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1856,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ $json.subject }}",
+        "bodyContent": "={{ $json.body }}",
+        "additionalFields": {
+          "bodyContentType": "Text",
+          "toRecipients": "={{ $json.to }}"
+        }
+      },
+      "id": "716ee768-1523-48fe-9661-7659867c0ddf",
+      "name": "Write-back: Save Drafts",
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        128
+      ],
+      "webhookId": "e611e907-c763-4ee7-b012-1e13bdb1f6ba",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_audit_log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $execution.id }}",
+            "specialist": "Translator + Leak Checker",
+            "proposal": "={{ $(\"Prepare Input\").first().json.projectName }} update for {{ $(\"Prepare Input\").first().json.audiences.join(\", \") }}",
+            "decision": "Approved",
+            "decided_by": "PM",
+            "write_back": "={{ $(\"Split Approved Versions\").all().length }} draft(s) saved; leak-check flags at approval: {{ $(\"Format Proposal for PM\").first().json.flags }}"
+          },
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "specialist",
+              "displayName": "specialist",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proposal",
+              "displayName": "proposal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "decision",
+              "displayName": "decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "decided_by",
+              "displayName": "decided_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "write_back",
+              "displayName": "write_back",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5930218c-4390-4b91-a54a-3ab8278b92df",
+      "name": "Log Approval",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2304,
+        128
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_audit_log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $execution.id }}",
+            "specialist": "Translator + Leak Checker",
+            "proposal": "={{ $(\"Prepare Input\").first().json.projectName }} update for {{ $(\"Prepare Input\").first().json.audiences.join(\", \") }}",
+            "decision": "Rejected (or no response in 2 days)",
+            "decided_by": "PM",
+            "write_back": "None"
+          },
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "specialist",
+              "displayName": "specialist",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proposal",
+              "displayName": "proposal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "decision",
+              "displayName": "decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "decided_by",
+              "displayName": "decided_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "write_back",
+              "displayName": "write_back",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c92653eb-cf45-4559-b9c7-8827f0154a02",
+      "name": "Log Rejection",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1968,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 03 · Stakeholder Translator\n**PM input:** open the form, paste one update, list anything **internal only**, pick audiences (Executive, Team, Client).\n\nThe **Translator** writes each version: same facts, different framing. The **Leak Checker** then reviews them: does the client version contain anything internal, and did any version change a fact? You see all versions and every flag in one approval email.\n\n**Guardrails:** internal-only field · independent leak check · fact-change check · drafts only, never auto-sent · audit log",
+        "height": 352,
+        "width": 656,
+        "color": 5
+      },
+      "id": "bf739329-68fd-4a7c-b249-b10a5d609505",
+      "name": "Sticky Note eb111e4e",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        240
+      ]
+    }
+  ],
+  "connections": {
+    "PM Input Form": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "Prepare Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Input": {
+      "main": [
+        [
+          {
+            "node": "Translator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Translator": {
+      "main": [
+        [
+          {
+            "node": "Pace",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini: Translate": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Translator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Versions Structure": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Translator",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pace": {
+      "main": [
+        [
+          {
+            "node": "Leak Checker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leak Checker": {
+      "main": [
+        [
+          {
+            "node": "Format Proposal for PM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini: Leak Check": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Leak Checker",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leak Check Structure": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Leak Checker",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Proposal for PM": {
+      "main": [
+        [
+          {
+            "node": "PM Approval Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PM Approval Gate": {
+      "main": [
+        [
+          {
+            "node": "Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved?": {
+      "main": [
+        [
+          {
+            "node": "Split Approved Versions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Rejection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Approved Versions": {
+      "main": [
+        [
+          {
+            "node": "Write-back: Save Drafts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write-back: Save Drafts": {
+      "main": [
+        [
+          {
+            "node": "Log Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "nodeGroups": [
+    {
+      "id": "b033faa3-3ce8-44c7-b166-47425d0b9896",
+      "name": "Input",
+      "nodeIds": [
+        "a36f3f9d-825f-4484-954b-b1fc5d8d2fee",
+        "e465edfb-1d7b-488d-bdc8-8a03c4fc5d35"
+      ],
+      "description": "Takes the PM form input, adds settings, tidies audiences and recipients"
+    },
+    {
+      "id": "d3634f60-72a7-4325-9b76-f72bbb2e33e8",
+      "name": "Propose",
+      "nodeIds": [
+        "943a5213-a799-4da8-8aea-988bfff1423b",
+        "bc5c177d-ae60-4af5-893b-2b648998466b",
+        "97b3f46c-d5e7-4d49-9e55-e219870dfc38",
+        "473b4016-5c79-4b35-8b85-a51672d3fdd1",
+        "1b8f33a4-6d3c-4fa0-a2d2-26790ac59bfb",
+        "5383613e-7481-4d72-a5d0-5a29c40f25fa",
+        "d1cb1f07-8810-48c7-96d5-7e2bb17f6f1e",
+        "2a8048eb-53a6-49db-8218-da7565dff78f"
+      ],
+      "description": "Translator writes each version; Leak Checker flags internal info in the client version and fact changes"
+    },
+    {
+      "id": "f50dc3cc-42d8-49cd-b34e-d832d50e4405",
+      "name": "PM decides",
+      "nodeIds": [
+        "c3e0ed8f-ad45-4853-a1c6-1e0f77cb636a",
+        "8db8b7bf-dead-4332-82e5-9ca5c569d63c"
+      ],
+      "description": "Approve or reject by email. Nothing is saved before this point."
+    },
+    {
+      "id": "07bb1499-50c4-4be4-a8e0-1b6bc085900a",
+      "name": "Act and log",
+      "nodeIds": [
+        "28111b5b-e98b-4f97-8449-f53b38c03a8f",
+        "716ee768-1523-48fe-9661-7659867c0ddf",
+        "5930218c-4390-4b91-a54a-3ab8278b92df"
+      ],
+      "description": "Only after approval: one Outlook draft per audience, then an audit entry"
+    }
+  ],
+  "active": false
+}

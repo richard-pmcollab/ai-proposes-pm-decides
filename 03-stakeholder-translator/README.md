@@ -3,7 +3,7 @@
 > Write the update once. The agent rewrites it for executives, the team and the client. A separate reviewer then checks the client version for anything internal. **You approve before any draft is saved.**
 
 **Built with:** n8n · Google Gemini · Microsoft Outlook
-**Status:** ✅ live-tested end to end. The test also caught and fixed a false-positive in the Leak Checker (see below).
+**Status:** ✅ live-tested end to end. Import [`workflow.json`](workflow.json). The test also caught and fixed a false-positive in the Leak Checker (see below).
 
 ---
 
@@ -80,6 +80,7 @@ Because the PM saw the flags and their reasons before approving, the false alarm
 ## Files
 
 ```
+workflow.json                 n8n export (import this)
 workflow.sdk.ts               the workflow as readable code
 sample-data/sample-input.md   fictional update with internal-only traps
 ```
