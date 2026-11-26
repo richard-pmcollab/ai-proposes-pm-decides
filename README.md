@@ -103,7 +103,7 @@ Test run on the fictional *Project Atlas* (free Gemini key, about 2 minutes end 
 
 ## Quick start (about 10 minutes)
 
-> **Status:** v1.1 passed a live end-to-end test. The importable `workflow.json` is being added shortly. **Watch** the repo to be notified.
+> **Status:** v1.1 passed a live end-to-end test. Import [`workflow.json`](workflow.json) and you're running in about 10 minutes.
 
 1. **Create two data tables** in n8n (Overview → Data tables):
    - `pmd_raid_log`: `raid_type`, `title`, `impact`, `likelihood`, `owner`, `mitigation`, `status`, `source` (all text)
