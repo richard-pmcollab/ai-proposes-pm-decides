@@ -134,7 +134,7 @@ Built on the **orchestrator-workers** agent pattern: one agent plans and delegat
 
 ---
 
-**Built by [Richard Waridtel](https://github.com/richard-pmcollab)**, Senior Program Manager (PMP), working on agentic AI for project delivery.
+**Built by [Casper Richard Roy](https://github.com/richard-pmcollab)**, Senior Program Manager (PMP), working on agentic AI for project delivery.
 If this helps your team, ⭐ the repo and tell me what you'd add.
 
 MIT License
