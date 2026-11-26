@@ -3,7 +3,7 @@
 > Paste a meeting transcript or rough notes. The agent proposes the decisions, actions, owners, risks and follow-up email. **You approve before anything is saved.**
 
 **Built with:** n8n · Google Gemini · Microsoft Outlook · n8n Data tables
-**Status:** built and validated. The live end-to-end test is pending (the Gemini free-tier daily quota ran out during development). `workflow.json` will be added after that test.
+**Status:** ✅ live-tested end to end. Import [`workflow.json`](workflow.json).
 
 ---
 
@@ -58,6 +58,19 @@ flowchart LR
 - The **sponsor** commits to two actions, which tests that owners can be senior people too.
 - A **decision with a condition** (go-live holds unless the vendor misses Wednesday).
 
+## Live test result
+
+On the sample transcript, the agent proposed **7 actions, 2 RAID items and 3 open questions**, and they were logged after PM approval:
+
+| Trap in the transcript | What the agent did |
+|---|---|
+| "I'll find someone" (PM) | Owner **Priya**, High confidence, quote attached |
+| Contacts validation nobody took | Owner **UNASSIGNED**, Low confidence, **highlighted** for the PM |
+| Training demo with no owner or date | Kept as **open questions**, not assigned |
+| Sponsor commitments | 2 actions for **Daniel** |
+| "By Friday" / "by Monday" / "I'll approve it" | Real dates where stated, **TBD** where not |
+| Conditional decision | "Go-live holds unless the vendor misses Wednesday (2 Dec)" |
+
 ## Setup
 
 1. Create the data table `pmd_action_log` with text columns: `meeting`, `meeting_date`, `action`, `owner`, `due_date`, `status`, `source`. It shares `pmd_raid_log` and `pmd_audit_log` with the main agent team.
@@ -68,6 +81,7 @@ flowchart LR
 ## Files
 
 ```
+workflow.json                    n8n export (import this)
 workflow.sdk.ts                  the workflow as readable code
 sample-data/sample-transcript.txt fictional meeting to test with
 ```
