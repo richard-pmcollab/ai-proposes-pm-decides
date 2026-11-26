@@ -4,6 +4,8 @@ This guide assumes you have **never used n8n** and are not technical. Follow the
 
 **Time needed:** about 45 minutes the first time.
 
+> **Prefer help from an AI?** [AI-INSTALL.md](AI-INSTALL.md) has a ready-made prompt for Claude, ChatGPT or Gemini that walks you through this same guide.
+
 ---
 
 ## What you need before you start

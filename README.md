@@ -7,7 +7,9 @@ They do the weekly grunt work: status reports, meeting actions, stakeholder upda
 
 `n8n` · `Agentic AI` · `Human-in-the-loop` · `Project Management` · `PMO`
 
-**New here? → [INSTALL.md](INSTALL.md)** walks you through everything step by step, even if you've never used n8n.
+**New here?** Two ways to install:
+- **[INSTALL.md](INSTALL.md)**: step-by-step guide, even if you've never used n8n.
+- **[AI-INSTALL.md](AI-INSTALL.md)**: download the zip, give it to Claude, ChatGPT or Gemini with the ready-made prompt, and let the AI guide you (or do the technical part itself).
 
 ---
 
@@ -69,7 +71,7 @@ flowchart LR
 
 - A free **n8n Cloud** trial (or your own n8n), a free **Google Gemini** API key, and a **Microsoft Outlook / Hotmail** account.
 - **Nothing to install on your computer** if you use n8n Cloud. Just a web browser.
-- About **45 minutes** the first time. **[INSTALL.md](INSTALL.md)** walks you through it.
+- About **45 minutes** the first time. **[INSTALL.md](INSTALL.md)** walks you through it, or let an AI assistant help with **[AI-INSTALL.md](AI-INSTALL.md)**.
 
 ### Free-tier friendly
 
@@ -79,6 +81,7 @@ Gemini's free tier allows about 5 AI requests a minute and a daily cap. The agen
 
 ```
 INSTALL.md                  step-by-step setup guide for beginners
+AI-INSTALL.md               copy-paste prompt to install with Claude, ChatGPT or Gemini
 00-setup/                   run once: creates the data tables + demo data
 agent-team/                 flagship: orchestrator + 4 specialists
 01-weekly-status-agent/     standalone weekly status report
