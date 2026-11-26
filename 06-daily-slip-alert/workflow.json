@@ -1,0 +1,893 @@
+{
+  "name": "AI Proposes, PM Decides: 06 Daily Slip Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 7 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "ccf1a13e-96e2-450e-872d-e2548e4a7398",
+      "name": "Weekdays 7:30 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "approver",
+              "name": "approverEmail",
+              "value": "YOUR_EMAIL@example.com",
+              "type": "string"
+            },
+            {
+              "id": "threshold",
+              "name": "alertOnSlipDays",
+              "value": 1,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4d1e8419-4aa9-40f6-bdbd-f852b2c530ce",
+      "name": "Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        272,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// READ-ONLY CONNECTOR. Fictional sample with fixed dates.\n// Swap for Jira, Asana, MS Project, Excel or Google Sheets; keep the same fields.\n// Milestones need: name, baseline, forecast, dependsOn (the milestone before it, if any).\nreturn [{ json: {\n  project: 'Project Atlas: CRM Migration',\n  milestones: [\n    { name: 'Data migration dry run', baseline: '2026-12-01', forecast: '2026-12-08', dependsOn: null },\n    { name: 'UAT start', baseline: '2026-12-15', forecast: '2026-12-17', dependsOn: 'Data migration dry run' },\n    { name: 'Go-live', baseline: '2027-01-12', forecast: '2027-01-12', dependsOn: 'UAT start' }\n  ],\n  criticalTasks: [\n    { id: 'T-102', task: 'Legacy data cleanse (accounts)', owner: 'M. Okafor', due: '2026-11-23', status: 'In Progress', milestone: 'Data migration dry run' },\n    { id: 'T-104', task: 'API integration with billing system', owner: 'R. Patel', due: '2026-11-28', status: 'Blocked', blocker: 'Vendor sandbox credentials', milestone: 'Data migration dry run' },\n    { id: 'T-107', task: 'UAT test scripts', owner: 'S. Nguyen', due: '2026-12-06', status: 'In Progress', milestone: 'UAT start' }\n  ]\n} }];"
+      },
+      "id": "0ed4e230-92da-4ac4-848f-adfecf4192be",
+      "name": "Read Project Tracker",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_milestone_snapshot"
+        },
+        "returnAll": true
+      },
+      "id": "37fc2386-50ce-4b62-bdb4-9ec07e76d8e8",
+      "name": "Read Yesterday's Snapshot",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        224
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// RULES, NOT AI, DECIDE WHETHER TO ALERT.\n// Alert only when a milestone forecast moved by >= alertOnSlipDays since the last snapshot.\n// Quiet days cost nothing: no AI call, no email.\nconst s = $('Settings').first().json;\nconst t = $('Read Project Tracker').first().json;\nconst prev = {};\n$input.all().map(i => i.json).filter(r => r && r.milestone).forEach(r => { prev[r.milestone] = r; });\nconst DAY = 86400000;\nconst diff = (a, b) => Math.round((new Date(a) - new Date(b)) / DAY);\nconst today = new Date().toISOString().slice(0, 10);\n\nconst milestones = t.milestones.map(m => {\n  const p = prev[m.name];\n  const movedDays = p ? diff(m.forecast, p.forecast) : 0;\n  return { ...m, previousForecast: p ? p.forecast : null, movedDays, vsBaselineDays: diff(m.forecast, m.baseline), isNew: !p };\n});\nconst slips = milestones.filter(m => m.movedDays >= s.alertOnSlipDays);\nconst pullIns = milestones.filter(m => m.movedDays < 0);\n\n// Knock-on: any later milestone that depends on a slipped one and has not moved yet\nconst knockOn = milestones.filter(m => m.dependsOn && slips.some(x => x.name === m.dependsOn) && m.movedDays === 0)\n  .map(m => ({ name: m.name, dependsOn: m.dependsOn, forecast: m.forecast }));\nconst relatedTasks = t.criticalTasks.filter(k => slips.some(x => x.name === k.milestone));\n\nreturn [{ json: {\n  project: t.project, today,\n  hasChanges: slips.length > 0,\n  slips, pullIns, knockOn, relatedTasks, milestones,\n  approverEmail: s.approverEmail\n} }];"
+      },
+      "id": "fef41b84-8115-46af-a068-68f20bd91c8e",
+      "name": "Detect Changes (rules)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nreturn d.milestones.map(m => ({ json: { milestone: m.name, forecast: m.forecast, baseline: m.baseline, captured_on: d.today } }));"
+      },
+      "id": "e44ad74c-c2b7-44ae-a4b0-c9a403055dec",
+      "name": "Prepare Snapshot",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_milestone_snapshot"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "milestone",
+              "keyValue": "={{ $json.milestone }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "milestone": "={{ $json.milestone }}",
+            "forecast": "={{ $json.forecast }}",
+            "baseline": "={{ $json.baseline }}",
+            "captured_on": "={{ $json.captured_on }}"
+          },
+          "schema": [
+            {
+              "id": "milestone",
+              "displayName": "milestone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "forecast",
+              "displayName": "forecast",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "baseline",
+              "displayName": "baseline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "captured_on",
+              "displayName": "captured_on",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "84def587-fd71-4bc4-aac0-5a93dbe1ce1e",
+      "name": "Save Today's Snapshot",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1024,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.hasChanges }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f714ca9b-05e7-433f-8878-2af18ad1e299",
+      "name": "Anything Slipped?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        800,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a schedule analyst. A milestone forecast moved overnight. Using ONLY the data below:\n- headline: one line for the PM.\n- whatMoved: what changed, by how many days, and the likely cause (cite task IDs and blockers from relatedTasks).\n- knockOnRisk: which dependent milestones are exposed (knockOn) and how much buffer is left before they must move. Be precise with dates.\n- options: 2-3 recovery options, each with its trade-off. Do not pick one: the PM decides.\n- raidItem: ONE RAID entry for this slip, with an owner named in the data.\nNever invent dates, people or causes.\n\nPROJECT: {{ $json.project }} · TODAY: {{ $json.today }}\nSLIPPED: {{ JSON.stringify($json.slips) }}\nKNOCK-ON: {{ JSON.stringify($json.knockOn) }}\nRELATED CRITICAL TASKS: {{ JSON.stringify($json.relatedTasks) }}\nALL MILESTONES: {{ JSON.stringify($json.milestones) }}",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "id": "58013319-37be-4927-a76a-f7b9b831fb56",
+      "name": "Impact Analyst",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1024,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "id": "40a09f89-b453-433c-a9f9-aa4e0d52dace",
+      "name": "Gemini: Impact",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        1040,
+        544
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{ \"headline\": \"Dry run moved 4 days overnight; UAT start now at risk\", \"whatMoved\": \"Plain explanation of the change and its likely cause, citing task IDs\", \"knockOnRisk\": \"Which later milestones are exposed and how many days of buffer remain\", \"options\": [{ \"option\": \"Escalate vendor access to the sponsor today\", \"tradeOff\": \"Uses sponsor goodwill\" }], \"raidItem\": { \"raid_type\": \"Issue\", \"title\": \"Short title\", \"impact\": \"High\", \"likelihood\": \"High\", \"owner\": \"Name from the tracker\", \"mitigation\": \"Concrete action\" } }"
+      },
+      "id": "84137581-bea3-4f6b-89c8-6e30f235e153",
+      "name": "Impact Structure",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1168,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const a = $input.first().json.output;\nconst d = $('Detect Changes (rules)').first().json;\nconst esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst td = 'style=\"border:1px solid #ddd;padding:5px 8px;text-align:left;vertical-align:top\"';\nconst rows = d.milestones.map(m => '<tr' + (m.movedDays > 0 ? ' style=\"background:#fdecea\"' : '') + '><td ' + td + '>' + esc(m.name) + '</td><td ' + td + '>' + esc(m.previousForecast || 'n/a') + '</td><td ' + td + '><b>' + esc(m.forecast) + '</b></td><td ' + td + '>' + (m.movedDays > 0 ? '<b style=\"color:#b00020\">+' + m.movedDays + ' days</b>' : (m.movedDays < 0 ? m.movedDays + ' days' : 'no change')) + '</td><td ' + td + '>' + (m.vsBaselineDays > 0 ? '+' + m.vsBaselineDays : m.vsBaselineDays) + ' vs baseline</td></tr>').join('');\nconst r = a.raidItem || {};\nconst html = '<div style=\"font-family:Segoe UI,Arial,sans-serif;font-size:14px;color:#222;max-width:760px\">'\n  + '<p style=\"font-size:12px;letter-spacing:1px;color:#b00020;margin:0\">SLIP ALERT · AI PROPOSES · YOU DECIDE</p>'\n  + '<h2 style=\"margin:4px 0\">' + esc(a.headline) + '</h2>'\n  + '<p style=\"color:#555;margin-top:0\">' + esc(d.project) + ' · ' + esc(d.today) + '</p>'\n  + '<table style=\"border-collapse:collapse;font-size:13px\"><tr><th ' + td + '>Milestone</th><th ' + td + '>Yesterday</th><th ' + td + '>Today</th><th ' + td + '>Moved</th><th ' + td + '>Baseline</th></tr>' + rows + '</table>'\n  + '<h3>What moved</h3><p>' + esc(a.whatMoved) + '</p>'\n  + '<h3>Knock-on risk</h3><p>' + esc(a.knockOnRisk) + '</p>'\n  + '<h3>Options (you choose)</h3><ol>' + (a.options || []).map(o => '<li><b>' + esc(o.option) + '</b><br><span style=\"color:#555\">Trade-off: ' + esc(o.tradeOff) + '</span></li>').join('') + '</ol>'\n  + '<h3>Proposed RAID entry (added if you acknowledge)</h3>'\n  + '<p>' + esc(r.raid_type) + ': <b>' + esc(r.title) + '</b> · Impact ' + esc(r.impact) + ' · Likelihood ' + esc(r.likelihood) + ' · Owner ' + esc(r.owner) + '<br>Mitigation: ' + esc(r.mitigation) + '</p>'\n  + '<p style=\"font-size:12px;color:#666\">The slip itself was detected by rules (forecast moved overnight), not by AI. Acknowledge to log the RAID entry. Dismiss if it is already handled. Either way the decision is logged and you will not be alerted again for this same change.</p>'\n  + '</div>';\nreturn [{ json: { subject: '[Slip alert] ' + d.project + ': ' + d.slips.map(s => s.name + ' +' + s.movedDays + 'd').join(', '), html } }];"
+      },
+      "id": "532f81e3-7f4e-43b8-a817-ebe15ea5a8fd",
+      "name": "Format Alert for PM",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "toRecipients": "={{ $(\"Detect Changes (rules)\").first().json.approverEmail }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.html }}",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "Acknowledge and log to RAID",
+            "disapproveLabel": "Dismiss"
+          }
+        },
+        "options": {
+          "limitWaitTime": {
+            "values": {
+              "resumeUnit": "days"
+            }
+          },
+          "appendAttribution": false
+        }
+      },
+      "id": "8741ccfd-b73b-4888-b256-101a32710b34",
+      "name": "PM Approval Gate",
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        320
+      ],
+      "webhookId": "a0fa2998-b75c-4371-8b68-411c185f8767",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.data.approved }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4b3e65ca-5e15-401b-bdd2-5a0a1862d9c7",
+      "name": "Acknowledged?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1552,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_raid_log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "raid_type": "={{ $(\"Impact Analyst\").first().json.output.raidItem.raid_type }}",
+            "title": "={{ $(\"Impact Analyst\").first().json.output.raidItem.title }}",
+            "impact": "={{ $(\"Impact Analyst\").first().json.output.raidItem.impact }}",
+            "likelihood": "={{ $(\"Impact Analyst\").first().json.output.raidItem.likelihood }}",
+            "owner": "={{ $(\"Impact Analyst\").first().json.output.raidItem.owner }}",
+            "mitigation": "={{ $(\"Impact Analyst\").first().json.output.raidItem.mitigation }}",
+            "status": "Open",
+            "source": "=Slip alert run {{ $execution.id }} (PM acknowledged)"
+          },
+          "schema": [
+            {
+              "id": "raid_type",
+              "displayName": "raid_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "impact",
+              "displayName": "impact",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "likelihood",
+              "displayName": "likelihood",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "owner",
+              "displayName": "owner",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "mitigation",
+              "displayName": "mitigation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7d11423f-02de-4ede-b4ea-5c83404d6279",
+      "name": "Write-back: Add to RAID Log",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1856,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_audit_log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $execution.id }}",
+            "specialist": "Slip Alert (rules) + Impact Analyst",
+            "proposal": "={{ $(\"Impact Analyst\").first().json.output.headline }}",
+            "decision": "Acknowledged",
+            "decided_by": "PM",
+            "write_back": "1 RAID entry added"
+          },
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "specialist",
+              "displayName": "specialist",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proposal",
+              "displayName": "proposal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "decision",
+              "displayName": "decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "decided_by",
+              "displayName": "decided_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "write_back",
+              "displayName": "write_back",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d9c35211-4890-4769-939f-c19100a68a30",
+      "name": "Log Acknowledgement",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2080,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_audit_log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $execution.id }}",
+            "specialist": "Slip Alert (rules) + Impact Analyst",
+            "proposal": "={{ $(\"Impact Analyst\").first().json.output.headline }}",
+            "decision": "Dismissed (or no response in 1 day)",
+            "decided_by": "PM",
+            "write_back": "None"
+          },
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "specialist",
+              "displayName": "specialist",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proposal",
+              "displayName": "proposal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "decision",
+              "displayName": "decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "decided_by",
+              "displayName": "decided_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "write_back",
+              "displayName": "write_back",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a7920f1e-1ed6-4ea6-9c5f-961712eb9450",
+      "name": "Log Dismissal",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1968,
+        288
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "6ea0912c-69e2-4e68-af75-45cada41ada5",
+      "name": "Test Run",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 06 · Daily Slip Alert\nEvery weekday at 7:30 it compares today's milestone forecasts with yesterday's **snapshot**.\n\n**Quiet day:** nothing moved, so no AI call and no email. The snapshot is refreshed.\n**Something moved:** the **Impact Analyst** explains the cause, the knock-on risk and 2-3 options. You get one alert and choose **Acknowledge** (logs a RAID entry) or **Dismiss**.\n\n**Guardrails:** rules decide when to alert · AI never picks the option · each change alerts once · read-only tracker · audit log",
+        "height": 224,
+        "width": 832,
+        "color": 5
+      },
+      "id": "97bcb58b-6d83-474c-8bf7-d9760f4027d6",
+      "name": "Sticky Note 1f89dac0",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        16,
+        336
+      ]
+    }
+  ],
+  "connections": {
+    "Weekdays 7:30 AM": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "Read Project Tracker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Project Tracker": {
+      "main": [
+        [
+          {
+            "node": "Read Yesterday's Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Yesterday's Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Detect Changes (rules)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Changes (rules)": {
+      "main": [
+        [
+          {
+            "node": "Prepare Snapshot",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Anything Slipped?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Save Today's Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anything Slipped?": {
+      "main": [
+        [
+          {
+            "node": "Impact Analyst",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Impact Analyst": {
+      "main": [
+        [
+          {
+            "node": "Format Alert for PM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini: Impact": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Impact Analyst",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Impact Structure": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Impact Analyst",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Alert for PM": {
+      "main": [
+        [
+          {
+            "node": "PM Approval Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PM Approval Gate": {
+      "main": [
+        [
+          {
+            "node": "Acknowledged?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acknowledged?": {
+      "main": [
+        [
+          {
+            "node": "Write-back: Add to RAID Log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Dismissal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write-back: Add to RAID Log": {
+      "main": [
+        [
+          {
+            "node": "Log Acknowledgement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Run": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "nodeGroups": [
+    {
+      "id": "744c6c47-8448-408f-9146-77c6ff4d8d5a",
+      "name": "Sense and detect",
+      "nodeIds": [
+        "4d1e8419-4aa9-40f6-bdbd-f852b2c530ce",
+        "0ed4e230-92da-4ac4-848f-adfecf4192be",
+        "37fc2386-50ce-4b62-bdb4-9ec07e76d8e8",
+        "fef41b84-8115-46af-a068-68f20bd91c8e"
+      ],
+      "description": "Reads the tracker and yesterday's snapshot; rules decide whether anything slipped"
+    },
+    {
+      "id": "34cb60cf-3a0a-4ec2-9a3d-3caa995c6b69",
+      "name": "Snapshot",
+      "nodeIds": [
+        "e44ad74c-c2b7-44ae-a4b0-c9a403055dec",
+        "84def587-fd71-4bc4-aac0-5a93dbe1ce1e"
+      ],
+      "description": "Saves today's forecasts so the same change never alerts twice"
+    },
+    {
+      "id": "4556d6fd-b36c-4426-933e-1f92481c4d5a",
+      "name": "Propose",
+      "nodeIds": [
+        "f714ca9b-05e7-433f-8878-2af18ad1e299",
+        "58013319-37be-4927-a76a-f7b9b831fb56",
+        "40a09f89-b453-433c-a9f9-aa4e0d52dace",
+        "84137581-bea3-4f6b-89c8-6e30f235e153",
+        "532f81e3-7f4e-43b8-a817-ebe15ea5a8fd"
+      ],
+      "description": "Only on slip days: cause, knock-on risk, options and one RAID entry"
+    },
+    {
+      "id": "5db778e9-b729-452a-b6f2-5cbd4d4923c2",
+      "name": "PM decides",
+      "nodeIds": [
+        "8741ccfd-b73b-4888-b256-101a32710b34",
+        "4b3e65ca-5e15-401b-bdd2-5a0a1862d9c7"
+      ],
+      "description": "Acknowledge or dismiss by email"
+    },
+    {
+      "id": "96da6f03-c725-4a32-b376-6c1404097d2c",
+      "name": "Act and log",
+      "nodeIds": [
+        "7d11423f-02de-4ede-b4ea-5c83404d6279",
+        "d9c35211-4890-4769-939f-c19100a68a30"
+      ],
+      "description": "Acknowledged: RAID entry and audit entry"
+    }
+  ],
+  "active": false
+}

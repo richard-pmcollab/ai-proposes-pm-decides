@@ -78,6 +78,7 @@ flowchart LR
 | [**03 · Stakeholder Translator**](03-stakeholder-translator/) | One update, internal-only notes, chosen audiences | Executive, team and client versions, checked by an independent leak checker | ✅ Tested |
 | [**04 · Intake Triage**](04-intake-triage/) | Nothing: stakeholders submit via a form | Rule-based priority, type, size, owner, duplicate check, missing info, reply draft | ✅ Tested |
 | [**05 · Retro Synthesizer**](05-retro-synthesizer/) | Anonymous team feedback via a form, then the PM picks the retro | Themes with counts, recurring flags, up to 3 measurable actions, team summary | ✅ Tested |
+| [**06 · Daily Slip Alert**](06-daily-slip-alert/) | Nothing: runs every weekday at 7:30 | Only when a forecast moved: cause, knock-on, options, one RAID entry. Quiet days: no AI, no email | ✅ Tested |
 | [**Weekly Status (standalone)**](01-weekly-status-agent/) | Nothing, runs on a schedule | Weekly status report as an Outlook draft | ✅ Tested |
 
 ## Proven on a live run
@@ -138,7 +139,8 @@ To use real data, replace **Read Project Tracker** with Jira, Asana, Monday.com,
 - [x] **03 Stakeholder Translator:** exec / team / client versions + independent leak checker, live-tested
 - [x] **04 Intake Triage:** stakeholder form, rule-based priority, duplicate detection, live-tested (incl. reject path)
 - [x] **05 Retro Synthesizer:** anonymous feedback, minimum-responses rule, recurring-issue flags, live-tested
-- [ ] Daily Slip Alert
+- [x] **06 Daily Slip Alert:** snapshot comparison, rules decide when to alert, quiet days cost nothing, live-tested
+- [ ] Next: Teams approvals · Jira/Asana connectors · PII redaction · model router · cost dashboard
 - [ ] **v2:** Change-impact specialist · Teams approval · write-back to the tracker · Google Sheets connector
 - [ ] **v3:** PII redaction · model router (small model for drafts, large for analysis) · cost and cycle-time dashboard · Jira and Asana connectors
 
@@ -153,6 +155,7 @@ docs/                screenshots, demo, design notes
 03-stakeholder-translator/ one update in, three audience versions out
 04-intake-triage/          stakeholder requests in, triaged and routed
 05-retro-synthesizer/      anonymous feedback in, themes and actions out
+06-daily-slip-alert/       daily schedule check, alerts only when something moved
 ```
 
 ## Design notes
