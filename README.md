@@ -125,6 +125,10 @@ Test run on the fictional *Project Atlas* (free Gemini key, about 2 minutes end 
 5. Click **Test workflow** and keep the tab open. In about 2 minutes you'll get an approval email for the fictional *Project Atlas*.
 6. Click **Approve and apply**, then check the RAID log, the audit log and your Outlook drafts. The run can take a minute or two to resume after your click.
 
+### Testing tip
+
+When you test with **Test workflow**, keep the workflow **open in the n8n editor** until you've clicked Approve or Reject in the email. n8n only listens for approval clicks on test runs while the editor is open; otherwise the link shows "No action required". Once a workflow is published and runs from its schedule or form, approval links work without the editor open.
+
 ### Free-tier mode
 
 Gemini's free tier allows 5 requests a minute. The agents run **one at a time** with a short pause between calls, which keeps a run safely under that limit. It's slower (about 2 minutes) but costs nothing.

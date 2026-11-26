@@ -50,6 +50,9 @@ flowchart LR
 | Options | ✅ 2 options with trade-offs (add help on T-102, or escalate T-104). **Neither chosen by the AI** |
 | RAID proposal | ✅ Issue: API integration blocked, owner R. Patel |
 | Snapshot | ✅ Updated to the new forecasts |
+| PM acknowledged | ✅ 1 RAID entry (Issue: API integration blocked, owner R. Patel) and audit entry written |
+
+**What the test caught:** the AI wrote a sentence into the RAID *impact* field instead of High/Medium/Low. **Fix:** the prompt now requires exactly one word for impact and likelihood.
 
 **Quiet day:** the same data run again.
 
