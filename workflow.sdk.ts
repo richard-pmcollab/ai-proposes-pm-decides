@@ -1,4 +1,4 @@
-import { workflow, node, trigger, sticky, ifElse, languageModel, outputParser, tool, fromAi, expr } from '@n8n/workflow-sdk';
+import { workflow, node, trigger, sticky, ifElse, languageModel, outputParser, expr } from '@n8n/workflow-sdk';
 
 // ---------- Triggers ----------
 const weeklySchedule = trigger({
@@ -11,6 +11,25 @@ const weeklySchedule = trigger({
 });
 
 const testRun = trigger({ type: 'n8n-nodes-base.manualTrigger', version: 1, config: { name: 'Test Run' } });
+
+// ---------- Settings: the only node most people need to edit ----------
+const settings = node({
+  type: 'n8n-nodes-base.set',
+  version: 3.4,
+  config: {
+    name: 'Settings',
+    parameters: {
+      mode: 'manual',
+      includeOtherFields: false,
+      assignments: {
+        assignments: [
+          { id: 'approver', name: 'approverEmail', value: 'YOUR_EMAIL@example.com', type: 'string' },
+          { id: 'pause', name: 'pauseSeconds', value: 13, type: 'number' }
+        ]
+      }
+    }
+  }
+});
 
 // ---------- 1. Sense: read-only connectors ----------
 const loadTracker = node({
@@ -127,122 +146,136 @@ return [{ json: {
   }
 });
 
-// ---------- 3. Propose: orchestrator + specialists ----------
+// ---------- 3. Propose: orchestrator plans, specialists work one at a time, orchestrator reviews ----------
+// FREE-TIER SAFE: one model call at a time with a pause between calls, so a run stays under
+// Gemini's free limit of 5 requests per minute. Paid key? Set pauseSeconds to 0 in Settings.
 const GEMINI = { googlePalmApi: { id: 'YOUR_GEMINI_CREDENTIAL_ID', name: 'Google Gemini' } };
-const CONTEXT = '\n\nPROJECT CONTEXT PACK (facts you may use):\n{{ JSON.stringify($("Build Context Pack").first().json) }}';
+const CONTEXT = '\n\nPROJECT CONTEXT PACK (the only facts you may use):\n{{ JSON.stringify($("Build Context Pack").first().json) }}';
+const MODEL = 'models/gemini-3-flash-preview';
+const PAUSE = { resume: 'timeInterval', amount: expr('{{ $("Settings").first().json.pauseSeconds }}'), unit: 'seconds' };
 
-const orchestratorModel = languageModel({
-  type: '@n8n/n8n-nodes-langchain.lmChatGoogleGemini', version: 1.2,
-  config: { name: 'Gemini: Orchestrator', parameters: { modelName: 'models/gemini-3-flash-preview', options: { temperature: 0.1 } }, credentials: GEMINI }
-});
-const statusModel = languageModel({
-  type: '@n8n/n8n-nodes-langchain.lmChatGoogleGemini', version: 1.2,
-  config: { name: 'Gemini: Status', parameters: { modelName: 'models/gemini-3-flash-preview', options: { temperature: 0.2 } }, credentials: GEMINI }
-});
-const scheduleModel = languageModel({
-  type: '@n8n/n8n-nodes-langchain.lmChatGoogleGemini', version: 1.2,
-  config: { name: 'Gemini: Schedule', parameters: { modelName: 'models/gemini-3-flash-preview', options: { temperature: 0.1 } }, credentials: GEMINI }
-});
-const raidModel = languageModel({
-  type: '@n8n/n8n-nodes-langchain.lmChatGoogleGemini', version: 1.2,
-  config: { name: 'Gemini: RAID', parameters: { modelName: 'models/gemini-3-flash-preview', options: { temperature: 0.1 } }, credentials: GEMINI }
-});
-const commsModel = languageModel({
-  type: '@n8n/n8n-nodes-langchain.lmChatGoogleGemini', version: 1.2,
-  config: { name: 'Gemini: Comms', parameters: { modelName: 'models/gemini-3-flash-preview', options: { temperature: 0.3 } }, credentials: GEMINI }
+const planModel = languageModel({ type: '@n8n/n8n-nodes-langchain.lmChatGoogleGemini', version: 1.2, config: { name: 'Gemini: Plan', parameters: { modelName: MODEL, options: { temperature: 0.1 } }, credentials: GEMINI } });
+const statusModel = languageModel({ type: '@n8n/n8n-nodes-langchain.lmChatGoogleGemini', version: 1.2, config: { name: 'Gemini: Status', parameters: { modelName: MODEL, options: { temperature: 0.2 } }, credentials: GEMINI } });
+const scheduleModel = languageModel({ type: '@n8n/n8n-nodes-langchain.lmChatGoogleGemini', version: 1.2, config: { name: 'Gemini: Schedule', parameters: { modelName: MODEL, options: { temperature: 0.1 } }, credentials: GEMINI } });
+const raidModel = languageModel({ type: '@n8n/n8n-nodes-langchain.lmChatGoogleGemini', version: 1.2, config: { name: 'Gemini: RAID', parameters: { modelName: MODEL, options: { temperature: 0.1 } }, credentials: GEMINI } });
+const commsModel = languageModel({ type: '@n8n/n8n-nodes-langchain.lmChatGoogleGemini', version: 1.2, config: { name: 'Gemini: Comms', parameters: { modelName: MODEL, options: { temperature: 0.3 } }, credentials: GEMINI } });
+const reviewModel = languageModel({ type: '@n8n/n8n-nodes-langchain.lmChatGoogleGemini', version: 1.2, config: { name: 'Gemini: Review', parameters: { modelName: MODEL, options: { temperature: 0.1 } }, credentials: GEMINI } });
+
+const planParser = outputParser({ type: '@n8n/n8n-nodes-langchain.outputParserStructured', version: 1.3, config: { name: 'Plan Structure', parameters: { schemaType: 'fromJson', jsonSchemaExample: '{ "focus": "The one issue that matters most this week", "statusBrief": "What the Status specialist should emphasise", "scheduleBrief": "What the Schedule specialist should dig into", "raidBrief": "What the RAID specialist should look for", "commsBrief": "Audience, tone and the key message for the sponsor update" }' } } });
+const raidParser = outputParser({ type: '@n8n/n8n-nodes-langchain.outputParserStructured', version: 1.3, config: { name: 'RAID Structure', parameters: { schemaType: 'fromJson', jsonSchemaExample: '{ "newRaidItems": [{ "raid_type": "Risk", "title": "Short title", "impact": "High", "likelihood": "Medium", "owner": "Name", "mitigation": "Concrete action" }], "updatesToExisting": ["Existing entry X should be raised to High impact because Y"] }' } } });
+const commsParser = outputParser({ type: '@n8n/n8n-nodes-langchain.outputParserStructured', version: 1.3, config: { name: 'Comms Structure', parameters: { schemaType: 'fromJson', jsonSchemaExample: '{ "subject": "Subject line", "body": "Email body with short paragraphs" }' } } });
+const reviewParser = outputParser({ type: '@n8n/n8n-nodes-langchain.outputParserStructured', version: 1.3, config: { name: 'Review Structure', parameters: { schemaType: 'fromJson', jsonSchemaExample: '{ "headline": "Project Atlas is Red: dry run slipped 7 days on a vendor block", "status": { "executiveSummary": "Two to three sentences.", "doneThisWeek": ["Item"], "nextWeek": ["Item"] }, "schedule": { "findings": ["Finding"], "recommendation": "One concrete recovery action" }, "decisionsNeeded": ["Decision for the sponsor"], "reviewNotes": "Any inconsistency you found between specialists, or empty" }' } } });
+
+const orchestratorPlan = node({
+  type: '@n8n/n8n-nodes-langchain.chainLlm', version: 1.9,
+  config: {
+    name: 'Orchestrator: Plan',
+    parameters: {
+      promptType: 'define',
+      text: expr('You are the ORCHESTRATOR of a PM agent team. You never write to any system; you plan the work and brief four specialists (Status, Schedule, RAID, Comms). Read the context pack, decide the single most important issue this week, and write a one-sentence brief for each specialist telling them what to focus on. The RAG in health.rag is set by rules and is final.' + CONTEXT),
+      hasOutputParser: true
+    },
+    subnodes: { model: planModel, outputParser: planParser }
+  }
 });
 
-const statusAgent = tool({
-  type: '@n8n/n8n-nodes-langchain.agentTool', version: 3,
+const wait1 = node({ type: 'n8n-nodes-base.wait', version: 1.1, config: { name: 'Pace 1', parameters: PAUSE } });
+
+const statusSpecialist = node({
+  type: '@n8n/n8n-nodes-langchain.chainLlm', version: 1.9,
   config: {
     name: 'Status Specialist',
     parameters: {
-      toolDescription: 'Builds the weekly status summary: executive summary, done this week, next week. Call once.',
-      text: expr('{{ $fromAI("instruction", "What the orchestrator needs from the status specialist", "string") }}' + CONTEXT),
-      options: { systemMessage: 'You are the Status specialist on a PM team. Using ONLY the context pack, return: (1) a 2-3 sentence executive summary that leads with health.rag and the most important issue, (2) a list of what was done (doneTasks + positive teamNotes), (3) a list of next-week priorities from tasks in dueNext7Ids, critical first. health.rag is final: never change it. Never invent facts. Plain, direct language.' }
+      promptType: 'define',
+      text: expr('You are the STATUS specialist on a PM team. Orchestrator brief: {{ $("Orchestrator: Plan").first().json.output.statusBrief }}\n\nReturn three short sections in plain text: EXECUTIVE SUMMARY (2-3 sentences, lead with health.rag and the main issue), DONE (doneTasks plus positive teamNotes), NEXT WEEK (tasks in dueNext7Ids, critical first, with owners). health.rag is final. Never invent facts.' + CONTEXT)
     },
     subnodes: { model: statusModel }
   }
 });
 
-const scheduleAgent = tool({
-  type: '@n8n/n8n-nodes-langchain.agentTool', version: 3,
+const wait2 = node({ type: 'n8n-nodes-base.wait', version: 1.1, config: { name: 'Pace 2', parameters: PAUSE } });
+
+const scheduleSpecialist = node({
+  type: '@n8n/n8n-nodes-langchain.chainLlm', version: 1.9,
   config: {
     name: 'Schedule Specialist',
     parameters: {
-      toolDescription: 'Analyses schedule slippage: milestone slips, overdue and blocked critical-path work, knock-on effects. Call once.',
-      text: expr('{{ $fromAI("instruction", "What the orchestrator needs from the schedule specialist", "string") }}' + CONTEXT),
-      options: { systemMessage: 'You are the Schedule specialist on a PM team. Using ONLY the context pack: list each milestone with slipDays > 0 and its likely cause (link to overdue or blocked tasks), name any knock-on risk to later milestones, and give ONE concrete recovery recommendation. Be precise with numbers and dates. Never invent facts.' }
+      promptType: 'define',
+      text: expr('You are the SCHEDULE specialist on a PM team. Orchestrator brief: {{ $("Orchestrator: Plan").first().json.output.scheduleBrief }}\n\nIn plain text: list each milestone with slipDays > 0 and its likely cause (link it to overdue or blocked task IDs), name any knock-on risk to later milestones, and give ONE concrete recovery recommendation. Be precise with numbers and dates. Never invent facts.' + CONTEXT)
     },
     subnodes: { model: scheduleModel }
   }
 });
 
-const raidAgent = tool({
-  type: '@n8n/n8n-nodes-langchain.agentTool', version: 3,
+const wait3 = node({ type: 'n8n-nodes-base.wait', version: 1.1, config: { name: 'Pace 3', parameters: PAUSE } });
+
+const raidSpecialist = node({
+  type: '@n8n/n8n-nodes-langchain.chainLlm', version: 1.9,
   config: {
     name: 'RAID Specialist',
     parameters: {
-      toolDescription: 'Finds NEW risks and issues that are not yet in the RAID log, with impact, likelihood, owner and mitigation. Call once.',
-      text: expr('{{ $fromAI("instruction", "What the orchestrator needs from the RAID specialist", "string") }}' + CONTEXT),
-      options: { systemMessage: 'You are the RAID specialist on a PM team. Compare blocked tasks, overdue critical tasks, milestone slips and teamNotes against existingRaid. Propose ONLY items that are genuinely new (not a rewording of an existing entry). For each: raid_type (Risk or Issue), title, impact (High/Medium/Low), likelihood (High/Medium/Low), owner (a person from the data), mitigation (concrete action). If an existing entry needs updating, say so separately. Never invent facts. Maximum 4 new items.' }
+      promptType: 'define',
+      text: expr('You are the RAID specialist on a PM team. Orchestrator brief: {{ $("Orchestrator: Plan").first().json.output.raidBrief }}\n\nCompare blocked tasks, overdue critical tasks, milestone slips and teamNotes against existingRaid. Propose ONLY genuinely new items (not a rewording of an existing entry), maximum 4. Each needs raid_type (Risk or Issue), title, impact (High/Medium/Low), likelihood (High/Medium/Low), owner (a person named in the data) and a concrete mitigation. Put suggested changes to existing entries in updatesToExisting. Never invent facts.' + CONTEXT),
+      hasOutputParser: true
     },
-    subnodes: { model: raidModel }
+    subnodes: { model: raidModel, outputParser: raidParser }
   }
 });
 
-const commsAgent = tool({
-  type: '@n8n/n8n-nodes-langchain.agentTool', version: 3,
+const wait4 = node({ type: 'n8n-nodes-base.wait', version: 1.1, config: { name: 'Pace 4', parameters: PAUSE } });
+
+const commsSpecialist = node({
+  type: '@n8n/n8n-nodes-langchain.chainLlm', version: 1.9,
   config: {
     name: 'Comms Specialist',
     parameters: {
-      toolDescription: 'Drafts the stakeholder update email for the sponsor. Call LAST and pass it the key findings from the other specialists.',
-      text: expr('{{ $fromAI("instruction", "Key findings from the other specialists and who the update is for", "string") }}' + CONTEXT),
-      options: { systemMessage: 'You are the Comms specialist on a PM team. Write a short stakeholder update email for the project sponsor: a subject line, then a body under 180 words with the status, the main issue, what the team is doing about it, and any decision needed from the sponsor. Professional, direct, no hype, no invented facts. Plain text with short paragraphs.' }
+      promptType: 'define',
+      text: expr('You are the COMMS specialist on a PM team. Orchestrator brief: {{ $("Orchestrator: Plan").first().json.output.commsBrief }}\n\nFindings from the other specialists:\nSTATUS:\n{{ $("Status Specialist").first().json.text }}\n\nSCHEDULE:\n{{ $("Schedule Specialist").first().json.text }}\n\nNEW RAID ITEMS:\n{{ JSON.stringify($("RAID Specialist").first().json.output.newRaidItems) }}\n\nWrite the stakeholder update email for the project sponsor ({{ $("Build Context Pack").first().json.project.sponsor }}): a subject line and a body under 180 words covering status, the main issue, what the team is doing, and any decision needed from the sponsor. Professional and direct. No hype, no invented facts. Sign off as "The project team".')
+      ,
+      hasOutputParser: true
     },
-    subnodes: { model: commsModel }
+    subnodes: { model: commsModel, outputParser: commsParser }
   }
 });
 
-const packParser = outputParser({
-  type: '@n8n/n8n-nodes-langchain.outputParserStructured', version: 1.3,
-  config: {
-    name: 'Proposal Pack Structure',
-    parameters: {
-      schemaType: 'fromJson',
-      jsonSchemaExample: '{ "headline": "Project Atlas is Red: dry run slipped 7 days on a vendor block", "status": { "executiveSummary": "Two to three sentences.", "doneThisWeek": ["Item"], "nextWeek": ["Item"] }, "schedule": { "findings": ["Data migration dry run +7 days, caused by blocked T-104"], "recommendation": "One concrete recovery action" }, "newRaidItems": [{ "raid_type": "Risk", "title": "Short title", "impact": "High", "likelihood": "Medium", "owner": "Name", "mitigation": "Concrete action" }], "stakeholderUpdate": { "subject": "Subject line", "body": "Email body" }, "decisionsNeeded": ["Decision for the sponsor"] }'
-    }
-  }
-});
+const wait5 = node({ type: 'n8n-nodes-base.wait', version: 1.1, config: { name: 'Pace 5', parameters: PAUSE } });
 
-const orchestrator = node({
-  type: '@n8n/n8n-nodes-langchain.agent', version: 3.1,
+const orchestratorReview = node({
+  type: '@n8n/n8n-nodes-langchain.chainLlm', version: 1.9,
   config: {
-    name: 'Orchestrator Agent',
+    name: 'Orchestrator: Review',
     parameters: {
       promptType: 'define',
-      text: expr('Run this week\'s PM review for {{ $json.project.name }} (health: {{ $json.health.rag }}; reasons: {{ $json.health.ragReasons.join("; ") }}). Call each specialist, then return the proposal pack.'),
-      hasOutputParser: true,
-      options: {
-        maxIterations: 12,
-        systemMessage: `You are the Orchestrator of a PM agent team. You plan and route work. You NEVER write to any system and you never make the final decision: everything you produce is a PROPOSAL for the PM to approve or reject.
-
-Your specialists (tools):
-- Status Specialist: executive summary, done, next week
-- Schedule Specialist: slippage analysis and one recovery recommendation
-- RAID Specialist: genuinely new risks and issues
-- Comms Specialist: stakeholder update email. Call it LAST and pass it the key findings from the others.
-
-Process: call Status, Schedule and RAID once each, then Comms once. Then assemble the proposal pack.
-
-Rules:
-- Use only what the specialists return. Do not add facts.
-- The RAG status is set by rules and is final. Do not change it.
-- decisionsNeeded: only items that need a sponsor or PM decision.
-- If a specialist returns nothing useful, leave that section empty rather than guessing.`
-      }
+      text: expr('You are the ORCHESTRATOR of a PM agent team. Your specialists have reported back. Check their work for consistency with the facts, then assemble the proposal pack for the PM. Use only what is below and in the context pack. The RAG ({{ $("Build Context Pack").first().json.health.rag }}) is final. decisionsNeeded: only items that need a sponsor or PM decision. If specialists contradict each other or the facts, say so in reviewNotes.\n\nYOUR FOCUS THIS WEEK: {{ $("Orchestrator: Plan").first().json.output.focus }}\n\nSTATUS SPECIALIST:\n{{ $("Status Specialist").first().json.text }}\n\nSCHEDULE SPECIALIST:\n{{ $("Schedule Specialist").first().json.text }}\n\nRAID SPECIALIST:\n{{ JSON.stringify($("RAID Specialist").first().json.output) }}\n\nCOMMS SPECIALIST:\n{{ JSON.stringify($("Comms Specialist").first().json.output) }}' + CONTEXT),
+      hasOutputParser: true
     },
-    subnodes: { model: orchestratorModel, tools: [statusAgent, scheduleAgent, raidAgent, commsAgent], outputParser: packParser }
+    subnodes: { model: reviewModel, outputParser: reviewParser }
+  }
+});
+
+const proposalPack = node({
+  type: 'n8n-nodes-base.code', version: 2,
+  config: {
+    name: 'Proposal Pack',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: `// RAID items and the stakeholder email come straight from the specialists,
+// so the orchestrator's review cannot silently change what the PM approves.
+const review = $('Orchestrator: Review').first().json.output;
+const raid = $('RAID Specialist').first().json.output || {};
+const comms = $('Comms Specialist').first().json.output || {};
+return [{ json: { output: {
+  headline: review.headline,
+  status: review.status || { executiveSummary: '', doneThisWeek: [], nextWeek: [] },
+  schedule: review.schedule || { findings: [], recommendation: '' },
+  decisionsNeeded: review.decisionsNeeded || [],
+  reviewNotes: review.reviewNotes || '',
+  newRaidItems: raid.newRaidItems || [],
+  updatesToExisting: raid.updatesToExisting || [],
+  stakeholderUpdate: { subject: comms.subject || '', body: comms.body || '' }
+} } }];`
+    }
   }
 });
 
@@ -274,7 +307,9 @@ const html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:14px;c
   + '<h3>3 · New RAID items (will be added to the RAID log if you approve)</h3>' + raid
   + '<h3>4 · Stakeholder update (will be saved as an Outlook draft if you approve)</h3>'
   + '<div style="border-left:3px solid #ccc;padding:6px 12px;background:#fafafa"><b>' + esc(p.stakeholderUpdate.subject) + '</b><br>' + esc(p.stakeholderUpdate.body).replace(/\\n/g, '<br>') + '</div>'
+  + '<h3>Suggested changes to existing RAID entries (not applied automatically)</h3>' + ul(p.updatesToExisting)
   + '<h3>Decisions needed</h3>' + ul(p.decisionsNeeded)
+  + (p.reviewNotes ? '<p><b>Orchestrator review notes:</b> ' + esc(p.reviewNotes) + '</p>' : '')
   + '<p style="font-size:12px;color:#666">Nothing has been written to any system yet. Approve to apply the RAID items and save the update as a draft. Reject to discard. Either way, your decision is logged.</p>'
   + '</div>';
 
@@ -290,7 +325,7 @@ const approvalGate = node({
     parameters: {
       resource: 'message',
       operation: 'sendAndWait',
-      toRecipients: 'YOUR_EMAIL@example.com',
+      toRecipients: expr('{{ $("Settings").first().json.approverEmail }}'),
       subject: expr('{{ $json.subject }}'),
       message: expr('{{ $json.html }}'),
       responseType: 'approval',
@@ -323,8 +358,8 @@ const commsDraft = node({
     parameters: {
       resource: 'draft',
       operation: 'create',
-      subject: expr('{{ $("Orchestrator Agent").first().json.output.stakeholderUpdate.subject }}'),
-      bodyContent: expr('{{ $("Orchestrator Agent").first().json.output.stakeholderUpdate.body }}'),
+      subject: expr('{{ $("Proposal Pack").first().json.output.stakeholderUpdate.subject }}'),
+      bodyContent: expr('{{ $("Proposal Pack").first().json.output.stakeholderUpdate.body }}'),
       additionalFields: { bodyContentType: 'Text' }
     },
     credentials: { microsoftOutlookOAuth2Api: { id: 'YOUR_OUTLOOK_CREDENTIAL_ID', name: 'Microsoft Outlook' } }
@@ -352,11 +387,11 @@ const logApproved = node({
         mappingMode: 'defineBelow',
         value: {
           run_id: expr('{{ $execution.id }}'),
-          specialist: 'Orchestrator (Status, Schedule, RAID, Comms)',
-          proposal: expr('{{ $("Orchestrator Agent").first().json.output.headline }}'),
+          specialist: 'Orchestrator + Status, Schedule, RAID, Comms',
+          proposal: expr('{{ $("Proposal Pack").first().json.output.headline }}'),
           decision: 'Approved',
           decided_by: 'PM',
-          write_back: expr('Stakeholder draft saved; {{ ($("Orchestrator Agent").first().json.output.newRaidItems || []).length }} RAID item(s) added')
+          write_back: expr('Stakeholder draft saved; {{ ($("Proposal Pack").first().json.output.newRaidItems || []).length }} RAID item(s) added')
         },
         schema: AUDIT_SCHEMA
       }
@@ -371,7 +406,7 @@ const splitRaid = node({
     parameters: {
       mode: 'runOnceForAllItems',
       language: 'javaScript',
-      jsCode: `const items = $('Orchestrator Agent').first().json.output.newRaidItems || [];
+      jsCode: `const items = $('Proposal Pack').first().json.output.newRaidItems || [];
 return items.map(r => ({ json: { raid_type: r.raid_type, title: r.title, impact: r.impact, likelihood: r.likelihood, owner: r.owner, mitigation: r.mitigation, status: 'Open', source: 'Agent run ' + $execution.id + ' (PM approved)' } }));`
     }
   }
@@ -421,8 +456,8 @@ const logRejected = node({
         mappingMode: 'defineBelow',
         value: {
           run_id: expr('{{ $execution.id }}'),
-          specialist: 'Orchestrator (Status, Schedule, RAID, Comms)',
-          proposal: expr('{{ $("Orchestrator Agent").first().json.output.headline }}'),
+          specialist: 'Orchestrator + Status, Schedule, RAID, Comms',
+          proposal: expr('{{ $("Proposal Pack").first().json.output.headline }}'),
           decision: 'Rejected (or no response in 2 days)',
           decided_by: 'PM',
           write_back: 'None'
@@ -434,27 +469,39 @@ const logRejected = node({
 });
 
 const note = sticky(`## AI proposes. The PM decides.
-An orchestrator agent routes work to four specialists (Status, Schedule, RAID, Comms) and assembles a **proposal pack**. The PM gets an email with **Approve / Reject**. Nothing is written to any system until the PM approves, and every decision is logged.
+The **orchestrator** plans the week and briefs four **specialists** (Status, Schedule, RAID, Comms), then reviews their work and builds one **proposal pack**. The PM gets an email with **Approve / Reject**. Nothing is written until the PM approves, and every decision is logged.
 
-**Flow:** Sense → Analyse → Propose → **PM approves** → Act → Log
+**Free-tier safe:** one AI call at a time with a short pause (Settings → pauseSeconds). Paid key? Set it to 0.
 
-**Guardrails:** read-only connectors · field filter · rule-based RAG (AI can't change it) · write-back only after approval · audit log`, [loadTracker, readRaid, contextPack], { color: 5 });
+**Flow:** Sense → Analyse → Propose → **PM approves** → Act → Log`, [settings, loadTracker, readRaid, contextPack], { color: 5 });
 
-export default workflow('ai-proposes-pm-decides', 'AI Proposes, PM Decides: PM Agent Team v1')
+export default workflow('ai-proposes-pm-decides', 'AI Proposes, PM Decides: PM Agent Team v1.1')
   .add(weeklySchedule)
+  .to(settings)
   .to(loadTracker)
   .to(readRaid)
   .to(contextPack)
-  .to(orchestrator)
+  .to(orchestratorPlan)
+  .to(wait1)
+  .to(statusSpecialist)
+  .to(wait2)
+  .to(scheduleSpecialist)
+  .to(wait3)
+  .to(raidSpecialist)
+  .to(wait4)
+  .to(commsSpecialist)
+  .to(wait5)
+  .to(orchestratorReview)
+  .to(proposalPack)
   .to(formatApproval)
   .to(approvalGate)
   .to(isApproved
     .onTrue(commsDraft.to(logApproved.to(splitRaid.to(insertRaid))))
     .onFalse(logRejected))
   .add(testRun)
-  .to(loadTracker)
+  .to(settings)
   .add(note)
-  .group('Sense and analyse', [loadTracker, readRaid, contextPack], { description: 'Read-only connectors, field filter and rule-based health. The AI never decides the RAG.' })
-  .group('Propose', [orchestrator, orchestratorModel, packParser, statusAgent, statusModel, scheduleAgent, scheduleModel, raidAgent, raidModel, commsAgent, commsModel, formatApproval], { description: 'Orchestrator routes to Status, Schedule, RAID and Comms specialists and builds one proposal pack' })
+  .group('Sense and analyse', [settings, loadTracker, readRaid, contextPack], { description: 'Settings, read-only connectors, field filter and rule-based health. The AI never decides the RAG.' })
+  .group('Propose', [orchestratorPlan, planModel, planParser, wait1, statusSpecialist, statusModel, wait2, scheduleSpecialist, scheduleModel, wait3, raidSpecialist, raidModel, raidParser, wait4, commsSpecialist, commsModel, commsParser, wait5, orchestratorReview, reviewModel, reviewParser, proposalPack, formatApproval], { description: 'Orchestrator plans, four specialists work one at a time (free-tier safe), orchestrator reviews' })
   .group('PM decides', [approvalGate, isApproved], { description: 'Approve or reject by email. Nothing is written anywhere before this point.' })
   .group('Act and log', [commsDraft, logApproved, splitRaid, insertRaid], { description: 'Only after approval: save the update as a draft, add RAID items, log the decision' });

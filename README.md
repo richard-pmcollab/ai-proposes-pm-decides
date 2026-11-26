@@ -55,7 +55,7 @@ flowchart LR
 |---|---|---|
 | **Sense** | Read tasks, milestones, budget, team notes and the RAID log | Read-only connectors |
 | **Analyse** | Strip to the needed fields; calculate health; set RAG with fixed rules | Code, not AI |
-| **Propose** | Orchestrator calls 4 specialists and assembles one proposal pack | AI agents |
+| **Propose** | Orchestrator **plans** and briefs 4 specialists, they work one at a time, then the orchestrator **reviews** their output for consistency | AI agents |
 | **PM approves** | PM gets an email with **Approve and apply** / **Reject** | **Human** |
 | **Act** | Add new RAID items; save stakeholder update as an Outlook draft | Only after approval |
 | **Log** | Record proposal, decision and what was written | Audit table |
@@ -64,11 +64,22 @@ flowchart LR
 
 | Agent | Job | Output |
 |---|---|---|
-| **Orchestrator** | Plans the run, routes to specialists, assembles the pack. Never writes. | Proposal pack |
+| **Orchestrator** | Plans the week, briefs each specialist, then reviews their work and flags contradictions. Never writes. | Plan + proposal pack |
 | **Status** | Executive summary, done this week, next week | Summary + lists |
 | **Schedule** | Milestone slips, root cause, knock-on risk, one recovery action | Findings + recommendation |
 | **RAID** | Finds *new* risks/issues not already in the log | Up to 4 RAID items |
 | **Comms** | Sponsor update email, called last, using the others' findings | Subject + body |
+
+## Proven on a live run
+
+Test run on the fictional *Project Atlas* (free Gemini key, about 2 minutes end to end):
+
+- **Rules set Red:** 7-day milestone slip, 1 critical task overdue, 1 blocked.
+- **Schedule specialist** noticed the dry run slipped 7 days but UAT only 2, so the buffer is being eaten.
+- **RAID specialist** proposed 3 genuinely new items and suggested upgrading an existing vendor risk to an Issue, without changing it on its own.
+- **PM approved** → 3 rows added to the RAID log, sponsor update saved as an Outlook draft, decision logged.
+
+**And the reason the gate exists:** the drafted sponsor email said *"we have reassigned resources"*, but that was only a recommendation. The PM catches this before it goes out. AI proposes. People decide.
 
 ## Guardrails
 
@@ -79,6 +90,7 @@ flowchart LR
 | **AI can't change the RAG** | RAG comes from fixed rules in code. Agents are told it's final. |
 | **No invented facts** | Every prompt restricts agents to the context pack. |
 | **Human approval** | Email with Approve/Reject. No answer in 2 days means rejected. |
+| **The PM approves exactly what the specialists wrote** | RAID items and the sponsor email pass straight from the specialists to the PM. The orchestrator's review can comment but can't rewrite them. |
 | **Audit trail** | Every run logs the proposal, the decision and the write-back. |
 
 ### RAG rules
@@ -91,22 +103,27 @@ flowchart LR
 
 ## Quick start (about 10 minutes)
 
-> **Status:** v1 is built and going through live testing. The importable `workflow.json` will be added once testing is done. **Watch** the repo to be notified.
+> **Status:** v1.1 passed a live end-to-end test. The importable `workflow.json` is being added shortly. **Watch** the repo to be notified.
 
 1. **Create two data tables** in n8n (Overview → Data tables):
    - `pmd_raid_log`: `raid_type`, `title`, `impact`, `likelihood`, `owner`, `mitigation`, `status`, `source` (all text)
    - `pmd_audit_log`: `run_id`, `specialist`, `proposal`, `decision`, `decided_by`, `write_back` (all text)
 2. **Import** `workflow.json` (Workflows → Import from file).
 3. **Connect credentials:** Google Gemini on the 5 model nodes, Microsoft Outlook on the approval and draft nodes.
-4. **Set your email** in the **PM Approval Gate** node.
-5. Click **Test workflow**. You'll get an approval email for the fictional *Project Atlas*.
-6. Click **Approve and apply**, then check the RAID log, the audit log and your Outlook drafts.
+4. Open the **Settings** node: set `approverEmail` to your address. Leave `pauseSeconds` at 13 on a free Gemini key, or set it to 0 on a paid key.
+5. Click **Test workflow** and keep the tab open. In about 2 minutes you'll get an approval email for the fictional *Project Atlas*.
+6. Click **Approve and apply**, then check the RAID log, the audit log and your Outlook drafts. The run can take a minute or two to resume after your click.
+
+### Free-tier mode
+
+Gemini's free tier allows 5 requests a minute. The agents run **one at a time** with a short pause between calls, which keeps a run safely under that limit. It's slower (about 2 minutes) but costs nothing.
 
 To use real data, replace **Read Project Tracker** with Jira, Asana, Monday.com, Excel or Google Sheets, keeping the same field names.
 
 ## Roadmap
 
 - [x] **v1:** orchestrator, 4 specialists, email approval gate, write-back, audit log
+- [x] **v1.1:** free-tier mode (paced calls), orchestrator plan + review, Settings node, live-tested
 - [ ] **v2:** Change-impact specialist · Teams approval · write-back to the tracker · Google Sheets connector
 - [ ] **v3:** PII redaction · model router (small model for drafts, large for analysis) · cost and cycle-time dashboard · Jira and Asana connectors
 
