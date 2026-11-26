@@ -3,7 +3,7 @@
 > Write the update once. The agent rewrites it for executives, the team and the client. A separate reviewer then checks the client version for anything internal. **You approve before any draft is saved.**
 
 **Built with:** n8n · Google Gemini · Microsoft Outlook
-**Status:** built and validated. The live end-to-end test is pending (Gemini free-tier daily quota). `workflow.json` will be added after that test.
+**Status:** ✅ live-tested end to end. The test also caught and fixed a false-positive in the Leak Checker (see below).
 
 ---
 
@@ -54,6 +54,21 @@ flowchart LR
 ## Try it
 
 Use the fictional inputs in [`sample-data/sample-input.md`](sample-data/sample-input.md). They include an 8% budget overrun, an overloaded team member and an invoice dispute, all marked internal only. The client version must contain none of them.
+
+## Live test result
+
+Run on the sample input (8% overrun, overloaded team member and invoice dispute, all marked internal only):
+
+| Check | Result |
+|---|---|
+| Client version contains internal info? | ✅ **No.** Calm milestone update plus Northwind's action (confirm 6 UAT testers by 5 Dec) |
+| Executive version | ✅ Status, go-live, budget impact, and an explicit decision request |
+| Team version | ✅ Credits Ana, lists schedule changes and next steps |
+| PM approved | ✅ 3 Outlook drafts saved, audit entry written |
+
+**What the test caught:** the Leak Checker flagged the *executive* version for "adding facts not in the update": the budget overrun and the invoice dispute. Those facts came from the internal-only notes, which are allowed for executives, so these were false alarms. **Fix:** the checker now treats internal notes as a valid source for Executive and Team and only flags them in the Client version.
+
+Because the PM saw the flags and their reasons before approving, the false alarm cost nothing. It's the same principle again: AI proposes, people decide.
 
 ## Setup
 

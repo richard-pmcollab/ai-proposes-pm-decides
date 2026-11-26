@@ -75,7 +75,7 @@ flowchart LR
 | Agent | What the PM gives it | What it proposes | Status |
 |---|---|---|---|
 | [**02 · Meeting → Actions**](02-meeting-to-actions/) | A meeting transcript or notes, via a form | Decisions, actions with owner, due date and supporting quote, risks, open questions, follow-up email | ✅ Tested |
-| [**03 · Stakeholder Translator**](03-stakeholder-translator/) | One update, internal-only notes, chosen audiences | Executive, team and client versions, checked by an independent leak checker | Built, live test pending |
+| [**03 · Stakeholder Translator**](03-stakeholder-translator/) | One update, internal-only notes, chosen audiences | Executive, team and client versions, checked by an independent leak checker | ✅ Tested |
 | [**Weekly Status (standalone)**](01-weekly-status-agent/) | Nothing, runs on a schedule | Weekly status report as an Outlook draft | ✅ Tested |
 
 ## Proven on a live run
@@ -133,7 +133,7 @@ To use real data, replace **Read Project Tracker** with Jira, Asana, Monday.com,
 - [x] **v1:** orchestrator, 4 specialists, email approval gate, write-back, audit log
 - [x] **v1.1:** free-tier mode (paced calls), orchestrator plan + review, Settings node, live-tested
 - [x] **02 Meeting → Actions:** PM input form, evidence-backed actions, approval gate, live-tested
-- [x] **03 Stakeholder Translator:** exec / team / client versions + independent leak checker (live test pending)
+- [x] **03 Stakeholder Translator:** exec / team / client versions + independent leak checker, live-tested
 - [ ] Intake Triage · Retro Synthesizer · daily Slip Alert
 - [ ] **v2:** Change-impact specialist · Teams approval · write-back to the tracker · Google Sheets connector
 - [ ] **v3:** PII redaction · model router (small model for drafts, large for analysis) · cost and cycle-time dashboard · Jira and Asana connectors
