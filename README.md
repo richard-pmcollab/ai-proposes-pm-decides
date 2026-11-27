@@ -115,7 +115,7 @@ Each agent folder has a `workflow.json` (the file you import into n8n), a README
 
 ---
 
-**Built by [Casper Richard Roy](https://github.com/richard-pmcollab)**, Senior Program Manager (PMP), working on agentic AI for project delivery.
+**Built by [Casper Richard Roy](https://github.com/richard-pmcollab)**, Senior Program Delivery Manager (PMP), working on agentic AI for project delivery.
 Designed, tested and documented by me; built with help from Claude Code.
 If this helps your team, ⭐ the repo and tell me what you'd add.
 
