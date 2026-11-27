@@ -20,7 +20,7 @@ To connect an AI to n8n, n8n has an MCP option in its **Settings** (the exact me
 ## How to start
 
 1. Download this repo: on GitHub click **Code → Download ZIP**.
-2. Open your AI and **upload the zip file**. If it can't take zip files, paste the link to this GitHub repo instead.
+2. Open your AI and **upload the zip file**. If it can't take zip files, paste the link to this GitHub repo instead. If it can't open either, it will ask you to paste the text of `INSTALL.md`, which works with any AI.
 3. Copy the whole prompt below, paste it into the chat and press Enter.
 4. Follow its instructions. It will tell you when it's your turn.
 
@@ -37,7 +37,11 @@ HOW TO WORK WITH ME
 - I am not technical. Use plain words, one step at a time, and wait for me to say
   "done" before the next step. After each step, tell me how to check that it worked.
 - Read INSTALL.md in the repo first. It is the source of truth for the steps and
-  for what I should see on screen. Follow its order.
+  for what I should see on screen. Follow its order. If you cannot open the zip file
+  or the GitHub link, tell me, and I will paste the text of INSTALL.md (and later each
+  folder's README) into this chat.
+- When I need to import a workflow, tell me the exact file path inside the zip
+  (for example 00-setup/workflow.json).
 - If you can act inside my n8n yourself (you have tools connected to my n8n), do the
   technical steps yourself and tell me what you did. If you cannot, guide me
   click by click instead.
