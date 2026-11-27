@@ -65,13 +65,11 @@ flowchart LR
 
 ## Setup
 
-1. Run the **00 Setup** workflow once. It creates every data table this agent uses and adds demo data. New to n8n? Follow [INSTALL.md](../INSTALL.md) step by step.
-2. Import the workflow and connect **Google Gemini** and **Microsoft Outlook**.
-3. In **Settings**, set `approverEmail` and `alertOnSlipDays`.
-4. Replace **Read Project Tracker** with your real source, keeping `name`, `baseline`, `forecast` and `dependsOn` for each milestone.
-5. Run it once to create the first snapshot, then activate it. It runs Monday to Friday at 7:30.
+Install it with [INSTALL.md](../INSTALL.md) (the one-command installer or the manual import). Specific to this agent:
 
-**When the approval email arrives:** click **Review and decide**, choose an option, add an optional comment (it goes into the audit log) and press **Submit**. Nothing is written anywhere until you submit.
+- **Settings** box: `approverEmail` (the installer fills it in) and `alertOnSlipDays`.
+- Your milestones and critical tasks come from the `pmd_milestones` and `pmd_tasks` tables. Fill them with [`inputs/`](../inputs/README.md). While they are empty, **Read Project Tracker** uses the fictional sample.
+- Once published, it runs Monday to Friday at 7:30.
 
 ## Files
 

@@ -52,14 +52,14 @@
     },
     {
       "parameters": {
-        "jsCode": "// READ-ONLY CONNECTOR. Fictional sample with fixed dates.\n// Swap for Jira, Asana, MS Project, Excel or Google Sheets; keep the same fields.\n// Milestones need: name, baseline, forecast, dependsOn (the milestone before it, if any).\nreturn [{ json: {\n  project: 'Project Atlas: CRM Migration',\n  milestones: [\n    { name: 'Data migration dry run', baseline: '2026-12-01', forecast: '2026-12-08', dependsOn: null },\n    { name: 'UAT start', baseline: '2026-12-15', forecast: '2026-12-17', dependsOn: 'Data migration dry run' },\n    { name: 'Go-live', baseline: '2027-01-12', forecast: '2027-01-12', dependsOn: 'UAT start' }\n  ],\n  criticalTasks: [\n    { id: 'T-102', task: 'Legacy data cleanse (accounts)', owner: 'M. Okafor', due: '2026-11-23', status: 'In Progress', milestone: 'Data migration dry run' },\n    { id: 'T-104', task: 'API integration with billing system', owner: 'R. Patel', due: '2026-11-28', status: 'Blocked', blocker: 'Vendor sandbox credentials', milestone: 'Data migration dry run' },\n    { id: 'T-107', task: 'UAT test scripts', owner: 'S. Nguyen', due: '2026-12-06', status: 'In Progress', milestone: 'UAT start' }\n  ]\n} }];"
+        "jsCode": "// READ-ONLY CONNECTOR. Reads your project from the pmd_project, pmd_tasks and pmd_milestones tables.\n// Fill them from your inputs (see inputs/README.md in the repo). While those tables are empty,\n// the fictional sample below is used, so the demo works straight after install.\n// Rows are never deleted: each load gets a new \"batch\" stamp and only the latest batch is used.\nconst fromTable = (n) => $(n).all().map(i => i.json).filter(r => r && r.id);\nconst latest = (rows) => { const b = rows.map(r => String(r.batch || '')).sort().pop(); return rows.filter(r => String(r.batch || '') === b); };\nconst tblProject = latest(fromTable('Read Project')).pop() || {};\nconst tblTasks = latest(fromTable('Read Tasks'));\nconst tblMilestones = latest(fromTable('Read Milestones'));\nconst yes = (v) => /^(y|yes|true|1)$/i.test(String(v ?? '').trim());\nconst num = (v) => Number(String(v ?? '').replace(/[^0-9.\\-]/g, '')) || 0;\nconst iso = (v) => String(v ?? '').trim().slice(0, 10);\nif (tblTasks.length && tblMilestones.length) {\n  const tasks = tblTasks.map(r => ({ id: r.task_id, task: r.task, owner: r.owner, workstream: r.workstream || '', due: iso(r.due), progress: num(r.progress), status: r.status, critical: yes(r.critical), blocker: r.blocker || '', milestone: r.milestone || '' }));\n  const milestones = tblMilestones.map(r => ({ name: r.name, baseline: iso(r.baseline), forecast: iso(r.forecast), dependsOn: r.depends_on || null, status: r.status || '' }));\n  const criticalTasks = tasks.filter(t => t.critical && t.status !== 'Done' && t.milestone);\n  return [{ json: { project: tblProject.name || 'My project', milestones, criticalTasks } }];\n}\n\n// ---- Fictional sample, used only while the tables are empty ----\nreturn [{ json: {\n  project: 'Project Atlas: CRM Migration',\n  milestones: [\n    { name: 'Data migration dry run', baseline: '2026-12-01', forecast: '2026-12-08', dependsOn: null },\n    { name: 'UAT start', baseline: '2026-12-15', forecast: '2026-12-17', dependsOn: 'Data migration dry run' },\n    { name: 'Go-live', baseline: '2027-01-12', forecast: '2027-01-12', dependsOn: 'UAT start' }\n  ],\n  criticalTasks: [\n    { id: 'T-102', task: 'Legacy data cleanse (accounts)', owner: 'M. Okafor', due: '2026-11-23', status: 'In Progress', milestone: 'Data migration dry run' },\n    { id: 'T-104', task: 'API integration with billing system', owner: 'R. Patel', due: '2026-11-28', status: 'Blocked', blocker: 'Vendor sandbox credentials', milestone: 'Data migration dry run' },\n    { id: 'T-107', task: 'UAT test scripts', owner: 'S. Nguyen', due: '2026-12-06', status: 'In Progress', milestone: 'UAT start' }\n  ]\n} }];"
       },
       "id": "0ed4e230-92da-4ac4-848f-adfecf4192be",
       "name": "Read Project Tracker",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        496,
+        1168,
         224
       ]
     },
@@ -78,7 +78,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        720,
+        1392,
         224
       ],
       "executeOnce": true,
@@ -93,7 +93,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        944,
+        1616,
         224
       ]
     },
@@ -106,7 +106,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        800,
+        1472,
         128
       ]
     },
@@ -181,7 +181,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        1024,
+        1696,
         128
       ]
     },
@@ -213,7 +213,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        800,
+        1472,
         320
       ]
     },
@@ -229,7 +229,7 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
       "position": [
-        1024,
+        1696,
         320
       ]
     },
@@ -244,7 +244,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.2,
       "position": [
-        1040,
+        1712,
         544
       ],
       "credentials": {
@@ -263,7 +263,7 @@
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        1168,
+        1840,
         544
       ]
     },
@@ -276,7 +276,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1376,
+        2048,
         320
       ]
     },
@@ -307,7 +307,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1552,
+        2224,
         320
       ]
     },
@@ -412,7 +412,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        1856,
+        2528,
         224
       ]
     },
@@ -497,7 +497,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        2080,
+        2752,
         224
       ]
     },
@@ -582,7 +582,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        1968,
+        2640,
         288
       ]
     },
@@ -627,7 +627,7 @@
       "type": "n8n-nodes-base.microsoftOutlook",
       "typeVersion": 2,
       "position": [
-        1288,
+        1960,
         320
       ],
       "id": "2002ecdf-20ea-406d-9e02-8dc7da6122c0",
@@ -677,12 +677,75 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        1428,
+        2100,
         460
       ],
       "id": "43e5de85-f7f5-4f88-ae8d-5d0f6f96db1a",
       "name": "Wait for PM Decision",
       "webhookId": "38fab83c-e4d7-4914-b91a-f39510103b6e"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_project"
+        },
+        "returnAll": true
+      },
+      "id": "837661d2-8e4c-449e-a202-bc8dc99dac1f",
+      "name": "Read Project",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        224
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_tasks"
+        },
+        "returnAll": true
+      },
+      "id": "2e757d7d-1944-4b3e-b52a-1ab5627bc7df",
+      "name": "Read Tasks",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        224
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_milestones"
+        },
+        "returnAll": true
+      },
+      "id": "ed7e7d8c-b3d3-4827-a2c2-03e1b9eaf004",
+      "name": "Read Milestones",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        944,
+        224
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
     }
   ],
   "connections": {
@@ -701,7 +764,7 @@
       "main": [
         [
           {
-            "node": "Read Project Tracker",
+            "node": "Read Project",
             "type": "main",
             "index": 0
           }
@@ -873,6 +936,39 @@
           }
         ]
       ]
+    },
+    "Read Project": {
+      "main": [
+        [
+          {
+            "node": "Read Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Tasks": {
+      "main": [
+        [
+          {
+            "node": "Read Milestones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Milestones": {
+      "main": [
+        [
+          {
+            "node": "Read Project Tracker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -886,6 +982,9 @@
       "name": "Sense and detect",
       "nodeIds": [
         "4d1e8419-4aa9-40f6-bdbd-f852b2c530ce",
+        "837661d2-8e4c-449e-a202-bc8dc99dac1f",
+        "2e757d7d-1944-4b3e-b52a-1ab5627bc7df",
+        "ed7e7d8c-b3d3-4827-a2c2-03e1b9eaf004",
         "0ed4e230-92da-4ac4-848f-adfecf4192be",
         "37fc2386-50ce-4b62-bdb4-9ec07e76d8e8",
         "fef41b84-8115-46af-a068-68f20bd91c8e"

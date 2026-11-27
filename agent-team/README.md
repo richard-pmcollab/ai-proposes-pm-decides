@@ -66,11 +66,11 @@ Fictional *Project Atlas*, free Gemini key, about 2 minutes end to end:
 
 ## Setup
 
-1. Run **00 Setup** once (it creates the data tables). Beginner steps: [INSTALL.md](../INSTALL.md).
-2. Import `workflow.json` and connect **Google Gemini** (6 model nodes) and **Microsoft Outlook** (2 nodes).
-3. Open the **Settings** node: set `approverEmail` to your email. Keep `pauseSeconds` at 13 on a free Gemini key.
-4. Click **Execute workflow**. In about 2 minutes the decision email arrives.
-5. To use real data, replace **Read Project Tracker** with your tracker (Jira, Asana, Excel, Google Sheets) and keep the same field names. Click **Publish** to run it every Friday at 8 AM.
+Install it with [INSTALL.md](../INSTALL.md). Specific to this agent:
+
+- **Settings** box: `approverEmail` (the installer fills it in) and `pauseSeconds` (keep 13 on a free Gemini key; 0 on a paid key).
+- To test, click **Execute workflow**. The decision email arrives in about 2 minutes.
+- To use real data, fill in your project with [`inputs/`](../inputs/README.md). **Read Project Tracker** then reads it from the `pmd_project`, `pmd_tasks` and `pmd_milestones` tables. While those are empty, it uses the fictional sample. **Publish** it to run every Friday at 8 AM.
 
 ## Files
 

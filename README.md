@@ -7,9 +7,7 @@ They do the weekly grunt work: status reports, meeting actions, stakeholder upda
 
 `n8n` · `Agentic AI` · `Human-in-the-loop` · `Project Management` · `PMO`
 
-**New here?** Two ways to install:
-- **[INSTALL.md](INSTALL.md)**: step-by-step guide, even if you've never used n8n.
-- **[AI-INSTALL.md](AI-INSTALL.md)**: download the zip, give it to Claude, ChatGPT or Gemini with the ready-made prompt, and let the AI guide you (or do the technical part itself).
+**Install:** download the zip and open the folder in **Claude Code**, then type *"install the PM agents"*. Or run `node installer/install.mjs` yourself. Step-by-step help for every setup, including the n8n free trial: **[INSTALL.md](INSTALL.md)**.
 
 ---
 
@@ -33,7 +31,7 @@ These agents take the opposite approach:
 | [`04-intake-triage/`](04-intake-triage/) | **Intake Triage** | Anyone submits a request form | Rule-based priority, type, size, owner, duplicate check, reply draft |
 | [`05-retro-synthesizer/`](05-retro-synthesizer/) | **Retro Synthesizer** | Team gives anonymous feedback, PM asks for a synthesis | Themes, recurring problems, up to 3 measurable actions, team summary |
 | [`06-daily-slip-alert/`](06-daily-slip-alert/) | **Daily Slip Alert** | Every weekday at 7:30 | Only when a milestone moved: cause, knock-on risk, options, one RAID entry |
-| [`00-setup/`](00-setup/) | **Setup** (run once) | You click it once | Creates the 6 data tables the agents share, plus demo data |
+| [`00-setup/`](00-setup/) | **Setup** | The installer does it, or you click it once | Creates the 9 data tables the agents share, plus demo data |
 
 Every agent was **live-tested end to end** on fictional data. Each folder's README shows the test results, including the bugs the tests caught and how they were fixed.
 
@@ -70,8 +68,8 @@ flowchart LR
 ## What you need
 
 - A free **n8n Cloud** trial (or your own n8n), a free **Google Gemini** API key, and a **Microsoft Outlook / Hotmail** account.
-- **Nothing to install on your computer** if you use n8n Cloud. Just a web browser.
-- About **45 minutes** the first time. **[INSTALL.md](INSTALL.md)** walks you through it, or let an AI assistant help with **[AI-INSTALL.md](AI-INSTALL.md)**.
+- **Node.js** on your computer for the one-command installer. The manual install needs only a web browser.
+- **Quick install** (paid n8n Cloud or self-hosted): about 15 minutes with the one-command installer. **Manual install** (n8n Cloud free trial): about 45 minutes. Both are in **[INSTALL.md](INSTALL.md)**.
 
 ### Free-tier friendly
 
@@ -80,9 +78,11 @@ Gemini's free tier allows about 5 AI requests a minute and a daily cap. The agen
 ## Repo layout
 
 ```
-INSTALL.md                  step-by-step setup guide for beginners
-AI-INSTALL.md               copy-paste prompt to install with Claude, ChatGPT or Gemini
-00-setup/                   run once: creates the data tables + demo data
+INSTALL.md                  the install guide (quick and manual paths)
+installer/                  one-command installer (node installer/install.mjs)
+.claude/skills/             Claude Code skills: "install the PM agents", "run the PM agents on my inputs"
+inputs/                     one page for your own project, a checker, and questions for your team
+00-setup/                   data tables + demo data (the installer does this for you)
 agent-team/                 flagship: orchestrator + 4 specialists
 01-weekly-status-agent/     standalone weekly status report
 02-meeting-to-actions/      transcript in, approved actions out
@@ -107,6 +107,7 @@ Each agent folder has a `workflow.json` (the file you import into n8n), a README
 
 - [x] PM Agent Team with orchestrator, 4 specialists, decision form and audit log
 - [x] Six single-purpose agents (01–06) and one-click Setup
+- [x] One input page for your own project, a rule-based checker, and a Claude Code skill that runs every agent from it
 - [ ] Approvals in Microsoft Teams
 - [ ] Connectors for Jira, Asana and Google Sheets, with write-back to the tracker
 - [ ] Change-impact specialist

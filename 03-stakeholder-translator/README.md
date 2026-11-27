@@ -72,12 +72,10 @@ Because the PM saw the flags and their reasons before approving, the false alarm
 
 ## Setup
 
-1. Run the **00 Setup** workflow once. It creates every data table this agent uses and adds demo data. New to n8n? Follow [INSTALL.md](../INSTALL.md) step by step.
-2. Import the workflow and connect **Google Gemini** and **Microsoft Outlook**.
-3. In **Settings**, set `approverEmail`. Keep `pauseSeconds` at 13 on a free Gemini key.
-4. Open **PM Input Form**, copy the form URL, fill it in and submit.
+Install it with [INSTALL.md](../INSTALL.md) (the one-command installer or the manual import). Specific to this agent:
 
-**When the approval email arrives:** click **Review and decide**, choose an option, add an optional comment (it goes into the audit log) and press **Submit**. Nothing is written anywhere until you submit.
+- To test: open the **PM Input Form** and use `sample-data/sample-input.md`.
+- **Settings** box: `approverEmail` (the installer fills it in) and `pauseSeconds` (keep 13 on a free Gemini key).
 
 ## Files
 

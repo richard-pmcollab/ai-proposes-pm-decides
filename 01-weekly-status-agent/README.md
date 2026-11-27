@@ -34,11 +34,7 @@ flowchart LR
 
 ## RAG rules
 
-| Status | Rule |
-|---|---|
-| 🔴 **Red** | Any milestone slipped more than 5 days, **or** 2+ critical tasks overdue |
-| 🟠 **Amber** | Any slip, overdue task, blocked task, or budget burn more than 10 points ahead of progress |
-| 🟢 **Green** | None of the above |
+The same fixed rules as the agent team: see [agent-team → RAG rules](../agent-team/README.md#rag-rules).
 
 ## Guardrails
 
@@ -61,13 +57,13 @@ Preview: [`sample-data/sample-output.html`](sample-data/sample-output.html)
 
 ## Setup
 
-1. Import `workflow.json` into n8n and connect **Google Gemini** and **Microsoft Outlook** (beginner steps: [INSTALL.md](../INSTALL.md)).
+1. Install it with [INSTALL.md](../INSTALL.md).
 2. Open the workflow and click **Execute workflow** (it starts from **Test Run** with the sample data).
 3. Check your Outlook **Drafts** folder for the report.
-4. To use real data, replace **Load Project Tracker (Sample)** with your source (Excel on OneDrive, Google Sheets, Jira, Asana) and keep the same field names.
+4. To use real data, fill in your project with [`inputs/`](../inputs/README.md). **Load Project Tracker** then reads it from the `pmd_project`, `pmd_tasks` and `pmd_milestones` tables. While those are empty, it uses the fictional sample.
 5. To run it every Friday at 8 AM, click **Publish** (top right).
 
-This agent saves a **draft** and needs no data tables. The full agent team in [`agent-team/`](../agent-team/) includes this same Status agent plus an approval step.
+This agent saves a **draft** and has no approval step. The full agent team in [`agent-team/`](../agent-team/) includes this same Status agent plus an approval step.
 
 ## Files
 

@@ -55,14 +55,14 @@
     },
     {
       "parameters": {
-        "jsCode": "// READ-ONLY CONNECTOR. Fictional sample project.\n// Swap this node for Jira, Asana, Monday.com, Excel or Google Sheets and keep the same fields.\nconst today = new Date();\ntoday.setHours(0, 0, 0, 0);\nconst d = (n) => { const x = new Date(today); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };\n\nreturn [{ json: {\n  reportDate: d(0),\n  project: { name: 'Project Atlas: CRM Migration', sponsor: 'VP Sales Operations', phase: 'Build', budgetPlanned: 250000, budgetSpent: 171000, goLive: d(47) },\n  tasks: [\n    { id: 'T-101', task: 'Data mapping sign-off', owner: 'A. Chen', due: d(-9), progress: 100, status: 'Done', critical: true },\n    { id: 'T-102', task: 'Legacy data cleanse (accounts)', owner: 'M. Okafor', due: d(-3), progress: 80, status: 'In Progress', critical: true },\n    { id: 'T-103', task: 'Legacy data cleanse (contacts)', owner: 'M. Okafor', due: d(4), progress: 45, status: 'In Progress', critical: true },\n    { id: 'T-104', task: 'API integration with billing system', owner: 'R. Patel', due: d(2), progress: 60, status: 'Blocked', critical: true, blocker: 'Waiting on billing vendor sandbox credentials' },\n    { id: 'T-105', task: 'Sales pipeline configuration', owner: 'J. Tremblay', due: d(-5), progress: 100, status: 'Done', critical: false },\n    { id: 'T-106', task: 'Role and permission setup', owner: 'J. Tremblay', due: d(6), progress: 70, status: 'In Progress', critical: false },\n    { id: 'T-107', task: 'UAT test scripts', owner: 'S. Nguyen', due: d(10), progress: 30, status: 'In Progress', critical: false },\n    { id: 'T-108', task: 'Training plan for 120 sales reps', owner: 'L. Martin', due: d(14), progress: 20, status: 'In Progress', critical: false },\n    { id: 'T-109', task: 'Reporting dashboards', owner: 'A. Chen', due: d(-1), progress: 100, status: 'Done', critical: false }\n  ],\n  milestones: [\n    { name: 'Data migration dry run', baseline: d(5), forecast: d(12) },\n    { name: 'UAT start', baseline: d(19), forecast: d(21) },\n    { name: 'Go-live', baseline: d(47), forecast: d(47) }\n  ],\n  teamNotes: [\n    'Billing vendor says sandbox credentials will arrive early next week, no firm date.',\n    'Two UAT testers are shared with the Q4 audit and may be unavailable for 5 days.',\n    'Sales leadership asked for a training demo before go-live.',\n    'Reporting dashboards finished a day early.'\n  ]\n} }];"
+        "jsCode": "// READ-ONLY CONNECTOR. Reads your project from the pmd_project, pmd_tasks and pmd_milestones tables.\n// Fill them from your inputs (see inputs/README.md in the repo). While those tables are empty,\n// the fictional sample below is used, so the demo works straight after install.\n// Rows are never deleted: each load gets a new \"batch\" stamp and only the latest batch is used.\nconst fromTable = (n) => $(n).all().map(i => i.json).filter(r => r && r.id);\nconst latest = (rows) => { const b = rows.map(r => String(r.batch || '')).sort().pop(); return rows.filter(r => String(r.batch || '') === b); };\nconst tblProject = latest(fromTable('Read Project')).pop() || {};\nconst tblTasks = latest(fromTable('Read Tasks'));\nconst tblMilestones = latest(fromTable('Read Milestones'));\nconst yes = (v) => /^(y|yes|true|1)$/i.test(String(v ?? '').trim());\nconst num = (v) => Number(String(v ?? '').replace(/[^0-9.\\-]/g, '')) || 0;\nconst iso = (v) => String(v ?? '').trim().slice(0, 10);\nif (tblTasks.length && tblMilestones.length) {\n  const tasks = tblTasks.map(r => ({ id: r.task_id, task: r.task, owner: r.owner, workstream: r.workstream || '', due: iso(r.due), progress: num(r.progress), status: r.status, critical: yes(r.critical), blocker: r.blocker || '', milestone: r.milestone || '' }));\n  const milestones = tblMilestones.map(r => ({ name: r.name, baseline: iso(r.baseline), forecast: iso(r.forecast), dependsOn: r.depends_on || null, status: r.status || '' }));\n  const t0 = new Date(); t0.setHours(0, 0, 0, 0);\n  const teamNotes = String(tblProject.team_notes || '').split(/\\n|\\|/).map(s => s.trim()).filter(Boolean);\n  return [{ json: {\n    reportDate: t0.toISOString().slice(0, 10),\n    project: { name: tblProject.name || 'My project', sponsor: tblProject.sponsor || '', phase: tblProject.phase || '', budgetPlanned: num(tblProject.budget_planned), budgetSpent: num(tblProject.budget_spent), goLive: iso(tblProject.go_live) },\n    tasks, milestones, teamNotes\n  } }];\n}\n\n// ---- Fictional sample, used only while the tables are empty ----\nconst today = new Date();\ntoday.setHours(0, 0, 0, 0);\nconst d = (n) => { const x = new Date(today); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };\n\nreturn [{ json: {\n  reportDate: d(0),\n  project: { name: 'Project Atlas: CRM Migration', sponsor: 'VP Sales Operations', phase: 'Build', budgetPlanned: 250000, budgetSpent: 171000, goLive: d(47) },\n  tasks: [\n    { id: 'T-101', task: 'Data mapping sign-off', owner: 'A. Chen', due: d(-9), progress: 100, status: 'Done', critical: true },\n    { id: 'T-102', task: 'Legacy data cleanse (accounts)', owner: 'M. Okafor', due: d(-3), progress: 80, status: 'In Progress', critical: true },\n    { id: 'T-103', task: 'Legacy data cleanse (contacts)', owner: 'M. Okafor', due: d(4), progress: 45, status: 'In Progress', critical: true },\n    { id: 'T-104', task: 'API integration with billing system', owner: 'R. Patel', due: d(2), progress: 60, status: 'Blocked', critical: true, blocker: 'Waiting on billing vendor sandbox credentials' },\n    { id: 'T-105', task: 'Sales pipeline configuration', owner: 'J. Tremblay', due: d(-5), progress: 100, status: 'Done', critical: false },\n    { id: 'T-106', task: 'Role and permission setup', owner: 'J. Tremblay', due: d(6), progress: 70, status: 'In Progress', critical: false },\n    { id: 'T-107', task: 'UAT test scripts', owner: 'S. Nguyen', due: d(10), progress: 30, status: 'In Progress', critical: false },\n    { id: 'T-108', task: 'Training plan for 120 sales reps', owner: 'L. Martin', due: d(14), progress: 20, status: 'In Progress', critical: false },\n    { id: 'T-109', task: 'Reporting dashboards', owner: 'A. Chen', due: d(-1), progress: 100, status: 'Done', critical: false }\n  ],\n  milestones: [\n    { name: 'Data migration dry run', baseline: d(5), forecast: d(12) },\n    { name: 'UAT start', baseline: d(19), forecast: d(21) },\n    { name: 'Go-live', baseline: d(47), forecast: d(47) }\n  ],\n  teamNotes: [\n    'Billing vendor says sandbox credentials will arrive early next week, no firm date.',\n    'Two UAT testers are shared with the Q4 audit and may be unavailable for 5 days.',\n    'Sales leadership asked for a training demo before go-live.',\n    'Reporting dashboards finished a day early.'\n  ]\n} }];"
       },
       "id": "bf994e12-2787-4f22-9d85-02f3e6269288",
       "name": "Read Project Tracker",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        496,
+        1168,
         224
       ]
     },
@@ -81,21 +81,21 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        720,
+        1392,
         224
       ],
       "alwaysOutputData": true
     },
     {
       "parameters": {
-        "jsCode": "// FIELD FILTER: agents only see what they need.\n// RAG is set by fixed rules here, never by the AI.\nconst t = $('Read Project Tracker').first().json;\nconst raid = $input.all().map(i => i.json).filter(r => r && r.title)\n  .map(r => ({ type: r.raid_type, title: r.title, impact: r.impact, likelihood: r.likelihood, owner: r.owner, status: r.status }));\n\nconst today = new Date(t.reportDate);\nconst DAY = 86400000;\nconst open = t.tasks.filter(x => x.status !== 'Done');\nconst done = t.tasks.filter(x => x.status === 'Done');\nconst overdue = open.filter(x => new Date(x.due) < today);\nconst blocked = open.filter(x => x.status === 'Blocked');\nconst criticalOverdue = overdue.filter(x => x.critical);\nconst dueNext7 = open.filter(x => { const n = (new Date(x.due) - today) / DAY; return n >= 0 && n <= 7; });\nconst percentComplete = Math.round(t.tasks.reduce((s, x) => s + x.progress, 0) / t.tasks.length);\nconst budgetUsedPct = Math.round((t.project.budgetSpent / t.project.budgetPlanned) * 100);\nconst milestones = t.milestones.map(m => ({ ...m, slipDays: Math.round((new Date(m.forecast) - new Date(m.baseline)) / DAY) }));\nconst maxSlip = Math.max(0, ...milestones.map(m => m.slipDays));\n\nconst reasons = [];\nif (maxSlip > 0) reasons.push('Milestone slip of up to ' + maxSlip + ' days');\nif (criticalOverdue.length) reasons.push(criticalOverdue.length + ' critical task(s) overdue');\nif (overdue.length > criticalOverdue.length) reasons.push((overdue.length - criticalOverdue.length) + ' non-critical task(s) overdue');\nif (blocked.length) reasons.push(blocked.length + ' task(s) blocked');\nif (budgetUsedPct - percentComplete > 10) reasons.push('Budget burn ahead of progress');\n\nlet rag = 'Green';\nif (maxSlip > 5 || criticalOverdue.length >= 2) rag = 'Red';\nelse if (reasons.length) rag = 'Amber';\n\nreturn [{ json: {\n  reportDate: t.reportDate,\n  project: { name: t.project.name, sponsor: t.project.sponsor, phase: t.project.phase, goLive: t.project.goLive },\n  health: { rag, ragReasons: reasons.length ? reasons : ['On track'], percentComplete, budgetUsedPct, tasksDone: done.length, tasksOpen: open.length },\n  milestones,\n  doneTasks: done.map(x => ({ id: x.id, task: x.task, owner: x.owner })),\n  openTasks: open.map(x => ({ id: x.id, task: x.task, owner: x.owner, due: x.due, progress: x.progress, status: x.status, critical: x.critical, blocker: x.blocker || null })),\n  overdueIds: overdue.map(x => x.id),\n  dueNext7Ids: dueNext7.map(x => x.id),\n  teamNotes: t.teamNotes,\n  existingRaid: raid\n} }];"
+        "jsCode": "// FIELD FILTER: agents only see what they need.\n// RAG is set by fixed rules here, never by the AI.\nconst t = $('Read Project Tracker').first().json;\nconst raid = $input.all().map(i => i.json).filter(r => r && r.title)\n  .map(r => ({ type: r.raid_type, title: r.title, impact: r.impact, likelihood: r.likelihood, owner: r.owner, status: r.status }));\n\nconst today = new Date(t.reportDate);\nconst DAY = 86400000;\nconst open = t.tasks.filter(x => x.status !== 'Done');\nconst done = t.tasks.filter(x => x.status === 'Done');\nconst overdue = open.filter(x => new Date(x.due) < today);\nconst blocked = open.filter(x => x.status === 'Blocked');\nconst criticalOverdue = overdue.filter(x => x.critical);\nconst dueNext7 = open.filter(x => { const n = (new Date(x.due) - today) / DAY; return n >= 0 && n <= 7; });\nconst percentComplete = Math.round(t.tasks.reduce((s, x) => s + x.progress, 0) / t.tasks.length);\nconst budgetUsedPct = Math.round((t.project.budgetSpent / t.project.budgetPlanned) * 100);\nconst milestones = t.milestones.map(m => ({ ...m, slipDays: Math.round((new Date(m.forecast) - new Date(m.baseline)) / DAY) }));\n// A finished milestone's old slip is history: it is still reported, but it no longer sets the RAG.\nconst isDone = (m) => String(m.status || '').trim().toLowerCase() === 'done';\nconst maxSlip = Math.max(0, ...milestones.filter(m => !isDone(m)).map(m => m.slipDays));\n\nconst reasons = [];\nif (maxSlip > 0) reasons.push('Milestone slip of up to ' + maxSlip + ' days');\nif (criticalOverdue.length) reasons.push(criticalOverdue.length + ' critical task(s) overdue');\nif (overdue.length > criticalOverdue.length) reasons.push((overdue.length - criticalOverdue.length) + ' non-critical task(s) overdue');\nif (blocked.length) reasons.push(blocked.length + ' task(s) blocked');\nif (budgetUsedPct - percentComplete > 10) reasons.push('Budget burn ahead of progress');\n\nlet rag = 'Green';\nif (maxSlip > 5 || criticalOverdue.length >= 2) rag = 'Red';\nelse if (reasons.length) rag = 'Amber';\n\nreturn [{ json: {\n  reportDate: t.reportDate,\n  project: { name: t.project.name, sponsor: t.project.sponsor, phase: t.project.phase, goLive: t.project.goLive },\n  health: { rag, ragReasons: reasons.length ? reasons : ['On track'], percentComplete, budgetUsedPct, tasksDone: done.length, tasksOpen: open.length },\n  milestones,\n  doneTasks: done.map(x => ({ id: x.id, task: x.task, owner: x.owner })),\n  openTasks: open.map(x => ({ id: x.id, task: x.task, owner: x.owner, due: x.due, progress: x.progress, status: x.status, critical: x.critical, blocker: x.blocker || null })),\n  overdueIds: overdue.map(x => x.id),\n  dueNext7Ids: dueNext7.map(x => x.id),\n  teamNotes: t.teamNotes,\n  existingRaid: raid\n} }];"
       },
       "id": "b278821e-f0da-48d4-9b7f-779c3db0ebb2",
       "name": "Build Context Pack",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        944,
+        1616,
         224
       ]
     },
@@ -111,7 +111,7 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
       "position": [
-        800,
+        1472,
         224
       ]
     },
@@ -126,7 +126,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.2,
       "position": [
-        816,
+        1488,
         448
       ],
       "credentials": {
@@ -145,7 +145,7 @@
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        944,
+        1616,
         448
       ]
     },
@@ -158,7 +158,7 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        1152,
+        1824,
         224
       ],
       "webhookId": "fb0224d5-2421-44a5-9ebf-7afd1d539c23"
@@ -174,7 +174,7 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
       "position": [
-        1376,
+        2048,
         224
       ]
     },
@@ -189,7 +189,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.2,
       "position": [
-        1456,
+        2128,
         448
       ],
       "credentials": {
@@ -208,7 +208,7 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        1728,
+        2400,
         224
       ],
       "webhookId": "93b95915-8275-4fa8-9e31-a3d8328d5372"
@@ -224,7 +224,7 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
       "position": [
-        1952,
+        2624,
         224
       ]
     },
@@ -239,7 +239,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.2,
       "position": [
-        2032,
+        2704,
         448
       ],
       "credentials": {
@@ -258,7 +258,7 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        2304,
+        2976,
         224
       ],
       "webhookId": "3c14c2ae-b177-460b-83a2-28aacdcd03a4"
@@ -275,7 +275,7 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
       "position": [
-        2528,
+        3200,
         224
       ]
     },
@@ -290,7 +290,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.2,
       "position": [
-        2544,
+        3216,
         448
       ],
       "credentials": {
@@ -309,7 +309,7 @@
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        2672,
+        3344,
         448
       ]
     },
@@ -322,7 +322,7 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        2880,
+        3552,
         224
       ],
       "webhookId": "730782f5-0c28-40b5-b31b-6658da6ec3c1"
@@ -339,7 +339,7 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
       "position": [
-        3104,
+        3776,
         224
       ]
     },
@@ -354,7 +354,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.2,
       "position": [
-        3120,
+        3792,
         448
       ],
       "credentials": {
@@ -373,7 +373,7 @@
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        3248,
+        3920,
         448
       ]
     },
@@ -386,7 +386,7 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        3456,
+        4128,
         224
       ],
       "webhookId": "76dd6079-b8f0-427d-b614-3fc78bfbb8f2"
@@ -403,7 +403,7 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
       "position": [
-        3680,
+        4352,
         224
       ]
     },
@@ -418,7 +418,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.2,
       "position": [
-        3696,
+        4368,
         448
       ],
       "credentials": {
@@ -437,7 +437,7 @@
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        3824,
+        4496,
         448
       ]
     },
@@ -450,7 +450,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4032,
+        4704,
         224
       ]
     },
@@ -463,7 +463,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4256,
+        4928,
         224
       ]
     },
@@ -494,7 +494,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1552,
+        2224,
         224
       ]
     },
@@ -512,7 +512,7 @@
       "type": "n8n-nodes-base.microsoftOutlook",
       "typeVersion": 2,
       "position": [
-        1856,
+        2528,
         128
       ],
       "webhookId": "aa8b5aa5-7a80-4120-bfa4-7773228076bf",
@@ -604,7 +604,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        2080,
+        2752,
         128
       ]
     },
@@ -617,7 +617,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2304,
+        2976,
         128
       ]
     },
@@ -722,7 +722,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        2528,
+        3200,
         128
       ]
     },
@@ -807,7 +807,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        1968,
+        2640,
         192
       ]
     },
@@ -852,7 +852,7 @@
       "type": "n8n-nodes-base.microsoftOutlook",
       "typeVersion": 2,
       "position": [
-        1288,
+        1960,
         224
       ],
       "id": "a144943c-79ec-45ea-b0bb-13b31e579a3f",
@@ -902,12 +902,75 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        1428,
+        2100,
         364
       ],
       "id": "420018f0-204b-49c0-a72a-6028d89d11ba",
       "name": "Wait for PM Decision",
       "webhookId": "45447bbf-8fab-4ce9-9461-53e968a1ba25"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_project"
+        },
+        "returnAll": true
+      },
+      "id": "e08258e9-721c-4f4b-ba91-81bd3f9b7091",
+      "name": "Read Project",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        224
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_tasks"
+        },
+        "returnAll": true
+      },
+      "id": "eadc7158-3966-44c6-99f1-dd4b9200ea4a",
+      "name": "Read Tasks",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        224
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_milestones"
+        },
+        "returnAll": true
+      },
+      "id": "fcd48853-5003-419c-816e-aad68ea5e07d",
+      "name": "Read Milestones",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        944,
+        224
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
     }
   ],
   "connections": {
@@ -926,7 +989,7 @@
       "main": [
         [
           {
-            "node": "Read Project Tracker",
+            "node": "Read Project",
             "type": "main",
             "index": 0
           }
@@ -1302,6 +1365,39 @@
           }
         ]
       ]
+    },
+    "Read Project": {
+      "main": [
+        [
+          {
+            "node": "Read Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Tasks": {
+      "main": [
+        [
+          {
+            "node": "Read Milestones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Milestones": {
+      "main": [
+        [
+          {
+            "node": "Read Project Tracker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -1315,6 +1411,9 @@
       "name": "Sense and analyse",
       "nodeIds": [
         "61a4208a-a228-492b-84c0-1023cb8f2b60",
+        "e08258e9-721c-4f4b-ba91-81bd3f9b7091",
+        "eadc7158-3966-44c6-99f1-dd4b9200ea4a",
+        "fcd48853-5003-419c-816e-aad68ea5e07d",
         "bf994e12-2787-4f22-9d85-02f3e6269288",
         "f401887e-983b-402f-8282-ebbc61395148",
         "b278821e-f0da-48d4-9b7f-779c3db0ebb2"

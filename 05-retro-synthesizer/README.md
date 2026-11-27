@@ -62,12 +62,10 @@ It also produced 3 open questions to start the retro meeting and an appreciative
 
 ## Setup
 
-1. Run the **00 Setup** workflow once. It creates every data table this agent uses and adds demo data. New to n8n? Follow [INSTALL.md](../INSTALL.md) step by step.
-2. Import the workflow and connect **Google Gemini** and **Microsoft Outlook**.
-3. In **Settings**, set `approverEmail`. Change `minResponses` if your team is larger.
-4. Activate the workflow and share the **Team Feedback Form** URL with the team. Keep the **PM Synthesize Form** URL for yourself.
+Install it with [INSTALL.md](../INSTALL.md) (the one-command installer or the manual import). Specific to this agent:
 
-**When the approval email arrives:** click **Review and decide**, choose an option, add an optional comment (it goes into the audit log) and press **Submit**. Nothing is written anywhere until you submit.
+- **Settings** box: `approverEmail` (the installer fills it in) and `minResponses` (raise it for larger teams).
+- After you **Publish**, share the **Team Feedback Form** URL with the team, and keep the **PM Synthesize Form** URL for yourself.
 
 ## Files
 

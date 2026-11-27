@@ -28,17 +28,17 @@
     },
     {
       "id": "4c778be3-ea53-45d6-93de-bf34188e11dd",
-      "name": "Load Project Tracker (Sample)",
+      "name": "Load Project Tracker",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        272,
+        944,
         224
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// Fictional sample project. Replace this node with your real tracker\n// (Excel on OneDrive, Google Sheets, Jira, Asana) and keep the same fields.\n// Dates are relative to today so the sample always looks current.\nconst today = new Date();\ntoday.setHours(0, 0, 0, 0);\nconst d = (n) => { const x = new Date(today); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };\n\nconst project = {\n  name: 'Project Atlas: CRM Migration',\n  sponsor: 'VP Sales Operations',\n  phase: 'Build',\n  budgetPlanned: 250000,\n  budgetSpent: 171000,\n  goLive: d(47)\n};\n\nconst tasks = [\n  { id: 'T-101', task: 'Data mapping sign-off', owner: 'A. Chen', workstream: 'Data', due: d(-9), progress: 100, status: 'Done', critical: true },\n  { id: 'T-102', task: 'Legacy data cleanse (accounts)', owner: 'M. Okafor', workstream: 'Data', due: d(-3), progress: 80, status: 'In Progress', critical: true },\n  { id: 'T-103', task: 'Legacy data cleanse (contacts)', owner: 'M. Okafor', workstream: 'Data', due: d(4), progress: 45, status: 'In Progress', critical: true },\n  { id: 'T-104', task: 'API integration with billing system', owner: 'R. Patel', workstream: 'Integration', due: d(2), progress: 60, status: 'Blocked', critical: true, blocker: 'Waiting on billing vendor sandbox credentials' },\n  { id: 'T-105', task: 'Sales pipeline configuration', owner: 'J. Tremblay', workstream: 'Config', due: d(-5), progress: 100, status: 'Done', critical: false },\n  { id: 'T-106', task: 'Role and permission setup', owner: 'J. Tremblay', workstream: 'Config', due: d(6), progress: 70, status: 'In Progress', critical: false },\n  { id: 'T-107', task: 'UAT test scripts', owner: 'S. Nguyen', workstream: 'Testing', due: d(10), progress: 30, status: 'In Progress', critical: false },\n  { id: 'T-108', task: 'Training plan for 120 sales reps', owner: 'L. Martin', workstream: 'Change', due: d(14), progress: 20, status: 'In Progress', critical: false },\n  { id: 'T-109', task: 'Reporting dashboards', owner: 'A. Chen', workstream: 'Config', due: d(-1), progress: 100, status: 'Done', critical: false }\n];\n\nconst milestones = [\n  { name: 'Data migration dry run', baseline: d(5), forecast: d(12) },\n  { name: 'UAT start', baseline: d(19), forecast: d(21) },\n  { name: 'Go-live', baseline: d(47), forecast: d(47) }\n];\n\nconst teamNotes = [\n  'Billing vendor says sandbox credentials will arrive early next week, no firm date.',\n  'Two UAT testers are shared with the Q4 audit and may be unavailable for 5 days.',\n  'Sales leadership asked for a training demo before go-live.',\n  'Reporting dashboards finished a day early.'\n];\n\nreturn [{ json: { reportDate: d(0), project, tasks, milestones, teamNotes } }];"
+        "jsCode": "// READ-ONLY CONNECTOR. Reads your project from the pmd_project, pmd_tasks and pmd_milestones tables.\n// Fill them from your inputs (see inputs/README.md in the repo). While those tables are empty,\n// the fictional sample below is used, so the demo works straight after install.\n// Rows are never deleted: each load gets a new \"batch\" stamp and only the latest batch is used.\nconst fromTable = (n) => $(n).all().map(i => i.json).filter(r => r && r.id);\nconst latest = (rows) => { const b = rows.map(r => String(r.batch || '')).sort().pop(); return rows.filter(r => String(r.batch || '') === b); };\nconst tblProject = latest(fromTable('Read Project')).pop() || {};\nconst tblTasks = latest(fromTable('Read Tasks'));\nconst tblMilestones = latest(fromTable('Read Milestones'));\nconst yes = (v) => /^(y|yes|true|1)$/i.test(String(v ?? '').trim());\nconst num = (v) => Number(String(v ?? '').replace(/[^0-9.\\-]/g, '')) || 0;\nconst iso = (v) => String(v ?? '').trim().slice(0, 10);\nif (tblTasks.length && tblMilestones.length) {\n  const tasks = tblTasks.map(r => ({ id: r.task_id, task: r.task, owner: r.owner, workstream: r.workstream || '', due: iso(r.due), progress: num(r.progress), status: r.status, critical: yes(r.critical), blocker: r.blocker || '', milestone: r.milestone || '' }));\n  const milestones = tblMilestones.map(r => ({ name: r.name, baseline: iso(r.baseline), forecast: iso(r.forecast), dependsOn: r.depends_on || null, status: r.status || '' }));\n  const t0 = new Date(); t0.setHours(0, 0, 0, 0);\n  const teamNotes = String(tblProject.team_notes || '').split(/\\n|\\|/).map(s => s.trim()).filter(Boolean);\n  return [{ json: {\n    reportDate: t0.toISOString().slice(0, 10),\n    project: { name: tblProject.name || 'My project', sponsor: tblProject.sponsor || '', phase: tblProject.phase || '', budgetPlanned: num(tblProject.budget_planned), budgetSpent: num(tblProject.budget_spent), goLive: iso(tblProject.go_live) },\n    tasks, milestones, teamNotes\n  } }];\n}\n\n// ---- Fictional sample, used only while the tables are empty ----\nconst today = new Date();\ntoday.setHours(0, 0, 0, 0);\nconst d = (n) => { const x = new Date(today); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };\n\nconst project = {\n  name: 'Project Atlas: CRM Migration',\n  sponsor: 'VP Sales Operations',\n  phase: 'Build',\n  budgetPlanned: 250000,\n  budgetSpent: 171000,\n  goLive: d(47)\n};\n\nconst tasks = [\n  { id: 'T-101', task: 'Data mapping sign-off', owner: 'A. Chen', workstream: 'Data', due: d(-9), progress: 100, status: 'Done', critical: true },\n  { id: 'T-102', task: 'Legacy data cleanse (accounts)', owner: 'M. Okafor', workstream: 'Data', due: d(-3), progress: 80, status: 'In Progress', critical: true },\n  { id: 'T-103', task: 'Legacy data cleanse (contacts)', owner: 'M. Okafor', workstream: 'Data', due: d(4), progress: 45, status: 'In Progress', critical: true },\n  { id: 'T-104', task: 'API integration with billing system', owner: 'R. Patel', workstream: 'Integration', due: d(2), progress: 60, status: 'Blocked', critical: true, blocker: 'Waiting on billing vendor sandbox credentials' },\n  { id: 'T-105', task: 'Sales pipeline configuration', owner: 'J. Tremblay', workstream: 'Config', due: d(-5), progress: 100, status: 'Done', critical: false },\n  { id: 'T-106', task: 'Role and permission setup', owner: 'J. Tremblay', workstream: 'Config', due: d(6), progress: 70, status: 'In Progress', critical: false },\n  { id: 'T-107', task: 'UAT test scripts', owner: 'S. Nguyen', workstream: 'Testing', due: d(10), progress: 30, status: 'In Progress', critical: false },\n  { id: 'T-108', task: 'Training plan for 120 sales reps', owner: 'L. Martin', workstream: 'Change', due: d(14), progress: 20, status: 'In Progress', critical: false },\n  { id: 'T-109', task: 'Reporting dashboards', owner: 'A. Chen', workstream: 'Config', due: d(-1), progress: 100, status: 'Done', critical: false }\n];\n\nconst milestones = [\n  { name: 'Data migration dry run', baseline: d(5), forecast: d(12) },\n  { name: 'UAT start', baseline: d(19), forecast: d(21) },\n  { name: 'Go-live', baseline: d(47), forecast: d(47) }\n];\n\nconst teamNotes = [\n  'Billing vendor says sandbox credentials will arrive early next week, no firm date.',\n  'Two UAT testers are shared with the Q4 audit and may be unavailable for 5 days.',\n  'Sales leadership asked for a training demo before go-live.',\n  'Reporting dashboards finished a day early.'\n];\n\nreturn [{ json: { reportDate: d(0), project, tasks, milestones, teamNotes } }];"
       }
     },
     {
@@ -47,13 +47,13 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        496,
+        1168,
         224
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// RAG status is set by fixed rules here, NOT by the AI.\n// The rules are visible and auditable; the AI only writes the narrative.\nconst data = $input.first().json;\nconst today = new Date(data.reportDate);\nconst DAY = 86400000;\n\nconst open = data.tasks.filter(t => t.status !== 'Done');\nconst done = data.tasks.filter(t => t.status === 'Done');\nconst overdue = open.filter(t => new Date(t.due) < today);\nconst blocked = open.filter(t => t.status === 'Blocked');\nconst dueNext7 = open.filter(t => { const days = (new Date(t.due) - today) / DAY; return days >= 0 && days <= 7; });\nconst criticalOverdue = overdue.filter(t => t.critical);\n\nconst percentComplete = Math.round(data.tasks.reduce((s, t) => s + t.progress, 0) / data.tasks.length);\nconst budgetUsedPct = Math.round((data.project.budgetSpent / data.project.budgetPlanned) * 100);\n\nconst milestones = data.milestones.map(m => ({ ...m, slipDays: Math.round((new Date(m.forecast) - new Date(m.baseline)) / DAY) }));\nconst maxSlip = Math.max(0, ...milestones.map(m => m.slipDays));\n\nconst reasons = [];\nif (maxSlip > 0) reasons.push('Milestone slip of up to ' + maxSlip + ' days');\nif (criticalOverdue.length) reasons.push(criticalOverdue.length + ' critical task(s) overdue');\nif (overdue.length > criticalOverdue.length) reasons.push((overdue.length - criticalOverdue.length) + ' non-critical task(s) overdue');\nif (blocked.length) reasons.push(blocked.length + ' task(s) blocked');\nif (budgetUsedPct - percentComplete > 10) reasons.push('Budget burn (' + budgetUsedPct + '%) ahead of progress (' + percentComplete + '%)');\n\nlet rag = 'Green';\nif (maxSlip > 5 || criticalOverdue.length >= 2) rag = 'Red';\nelse if (reasons.length) rag = 'Amber';\n\nreturn [{ json: {\n  ...data,\n  metrics: {\n    rag,\n    ragReasons: reasons.length ? reasons : ['On track: no slips, overdue or blocked work'],\n    percentComplete,\n    budgetUsedPct,\n    tasksDone: done.length,\n    tasksOpen: open.length,\n    overdue: overdue.map(t => ({ id: t.id, task: t.task, owner: t.owner, due: t.due, critical: t.critical })),\n    blocked: blocked.map(t => ({ id: t.id, task: t.task, owner: t.owner, blocker: t.blocker })),\n    dueNext7: dueNext7.map(t => ({ id: t.id, task: t.task, owner: t.owner, due: t.due })),\n    milestones\n  }\n} }];"
+        "jsCode": "// RAG status is set by fixed rules here, NOT by the AI.\n// The rules are visible and auditable; the AI only writes the narrative.\nconst data = $input.first().json;\nconst today = new Date(data.reportDate);\nconst DAY = 86400000;\n\nconst open = data.tasks.filter(t => t.status !== 'Done');\nconst done = data.tasks.filter(t => t.status === 'Done');\nconst overdue = open.filter(t => new Date(t.due) < today);\nconst blocked = open.filter(t => t.status === 'Blocked');\nconst dueNext7 = open.filter(t => { const days = (new Date(t.due) - today) / DAY; return days >= 0 && days <= 7; });\nconst criticalOverdue = overdue.filter(t => t.critical);\n\nconst percentComplete = Math.round(data.tasks.reduce((s, t) => s + t.progress, 0) / data.tasks.length);\nconst budgetUsedPct = Math.round((data.project.budgetSpent / data.project.budgetPlanned) * 100);\n\nconst milestones = data.milestones.map(m => ({ ...m, slipDays: Math.round((new Date(m.forecast) - new Date(m.baseline)) / DAY) }));\n// A finished milestone's old slip is history: it is still reported, but it no longer sets the RAG.\nconst isDone = (m) => String(m.status || '').trim().toLowerCase() === 'done';\nconst maxSlip = Math.max(0, ...milestones.filter(m => !isDone(m)).map(m => m.slipDays));\n\nconst reasons = [];\nif (maxSlip > 0) reasons.push('Milestone slip of up to ' + maxSlip + ' days');\nif (criticalOverdue.length) reasons.push(criticalOverdue.length + ' critical task(s) overdue');\nif (overdue.length > criticalOverdue.length) reasons.push((overdue.length - criticalOverdue.length) + ' non-critical task(s) overdue');\nif (blocked.length) reasons.push(blocked.length + ' task(s) blocked');\nif (budgetUsedPct - percentComplete > 10) reasons.push('Budget burn (' + budgetUsedPct + '%) ahead of progress (' + percentComplete + '%)');\n\nlet rag = 'Green';\nif (maxSlip > 5 || criticalOverdue.length >= 2) rag = 'Red';\nelse if (reasons.length) rag = 'Amber';\n\nreturn [{ json: {\n  ...data,\n  metrics: {\n    rag,\n    ragReasons: reasons.length ? reasons : ['On track: no slips, overdue or blocked work'],\n    percentComplete,\n    budgetUsedPct,\n    tasksDone: done.length,\n    tasksOpen: open.length,\n    overdue: overdue.map(t => ({ id: t.id, task: t.task, owner: t.owner, due: t.due, critical: t.critical })),\n    blocked: blocked.map(t => ({ id: t.id, task: t.task, owner: t.owner, blocker: t.blocker })),\n    dueNext7: dueNext7.map(t => ({ id: t.id, task: t.task, owner: t.owner, due: t.due })),\n    milestones\n  }\n} }];"
       }
     },
     {
@@ -62,7 +62,7 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        800,
+        1472,
         224
       ],
       "parameters": {
@@ -80,7 +80,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.2,
       "position": [
-        816,
+        1488,
         448
       ],
       "parameters": {
@@ -102,7 +102,7 @@
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        944,
+        1616,
         448
       ],
       "parameters": {
@@ -116,7 +116,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1152,
+        1824,
         224
       ],
       "parameters": {
@@ -131,7 +131,7 @@
       "type": "n8n-nodes-base.microsoftOutlook",
       "typeVersion": 2,
       "position": [
-        1328,
+        2000,
         224
       ],
       "parameters": {
@@ -178,6 +178,69 @@
         "width": 384,
         "height": 260
       }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_project"
+        },
+        "returnAll": true
+      },
+      "id": "64ea4b1e-1c82-4cab-b847-a2e52ac7c948",
+      "name": "Read Project",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        272,
+        224
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_tasks"
+        },
+        "returnAll": true
+      },
+      "id": "5f0c2d8f-7b16-4e3f-b4c4-904390854c2f",
+      "name": "Read Tasks",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        224
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "pmd_milestones"
+        },
+        "returnAll": true
+      },
+      "id": "e08c1d9e-0b47-497e-957f-31b0435dd121",
+      "name": "Read Milestones",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        224
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
     }
   ],
   "connections": {
@@ -185,18 +248,7 @@
       "main": [
         [
           {
-            "node": "Load Project Tracker (Sample)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Load Project Tracker (Sample)": {
-      "main": [
-        [
-          {
-            "node": "Calculate Health and RAG",
+            "node": "Read Project",
             "type": "main",
             "index": 0
           }
@@ -262,7 +314,51 @@
       "main": [
         [
           {
-            "node": "Load Project Tracker (Sample)",
+            "node": "Read Project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Project Tracker": {
+      "main": [
+        [
+          {
+            "node": "Calculate Health and RAG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Project": {
+      "main": [
+        [
+          {
+            "node": "Read Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Tasks": {
+      "main": [
+        [
+          {
+            "node": "Read Milestones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Milestones": {
+      "main": [
+        [
+          {
+            "node": "Load Project Tracker",
             "type": "main",
             "index": 0
           }
@@ -279,7 +375,10 @@
       "id": "3d709734-34e7-4a99-8eee-89daf6667075",
       "name": "Gather and score",
       "nodeNames": [
-        "Load Project Tracker (Sample)",
+        "Read Project",
+        "Read Tasks",
+        "Read Milestones",
+        "Load Project Tracker",
         "Calculate Health and RAG"
       ],
       "description": "Loads tracker data and sets the RAG status with fixed, auditable rules"

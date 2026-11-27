@@ -403,7 +403,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1696,
+        2368,
         416
       ],
       "id": "5d3fa53c-c03f-477d-bf48-46eb0d3befbd",
@@ -503,7 +503,7 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        1920,
+        2592,
         384
       ],
       "id": "1081d366-245d-4307-8fc7-902cd668db03",
@@ -609,7 +609,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        2144,
+        2816,
         128
       ],
       "id": "0a564a34-20c7-49c7-8308-7355003c22ac",
@@ -715,7 +715,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        2144,
+        2816,
         320
       ],
       "id": "344042e8-22a2-42ee-9abc-d61ad695990f",
@@ -791,7 +791,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        2144,
+        2816,
         512
       ],
       "id": "6a59f8b7-8284-43ac-b42f-2538302464e5",
@@ -857,7 +857,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        2144,
+        2816,
         704
       ],
       "id": "9ea7cebf-ce80-4178-ae75-677cecc69978",
@@ -865,7 +865,7 @@
     },
     {
       "parameters": {
-        "content": "## 00 · Setup (run once)\nClick **Execute workflow**. It creates the 6 data tables every agent uses and adds a little fictional demo data so you can try each agent straight away.\n\n**Safe to run again:** existing tables are kept, and demo data is only added to tables that are still empty.\n\nCheck the result under **Overview → Data tables**: you should see 6 tables starting with pmd_.",
+        "content": "## 00 · Setup (run once)\nClick **Execute workflow**. It creates the 9 data tables every agent uses and adds a little fictional demo data so you can try each agent straight away.\n\n**Safe to run again:** existing tables are kept, and demo data is only added to tables that are still empty.\n\nCheck the result under **Overview → Data tables**: you should see 9 tables starting with pmd_.",
         "color": 5,
         "width": 608,
         "height": 224
@@ -878,6 +878,175 @@
       ],
       "id": "945da6ac-d95c-423a-8ee7-d7933460531d",
       "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "pmd_project",
+        "columns": {
+          "column": [
+            {
+              "name": "name",
+              "type": "string"
+            },
+            {
+              "name": "sponsor",
+              "type": "string"
+            },
+            {
+              "name": "phase",
+              "type": "string"
+            },
+            {
+              "name": "budget_planned",
+              "type": "string"
+            },
+            {
+              "name": "budget_spent",
+              "type": "string"
+            },
+            {
+              "name": "go_live",
+              "type": "string"
+            },
+            {
+              "name": "team_notes",
+              "type": "string"
+            },
+            {
+              "name": "batch",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "9649c91e-5953-46e2-8dbe-327397546cf7",
+      "name": "Create Project",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1616,
+        128
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "pmd_tasks",
+        "columns": {
+          "column": [
+            {
+              "name": "task_id",
+              "type": "string"
+            },
+            {
+              "name": "task",
+              "type": "string"
+            },
+            {
+              "name": "owner",
+              "type": "string"
+            },
+            {
+              "name": "workstream",
+              "type": "string"
+            },
+            {
+              "name": "due",
+              "type": "string"
+            },
+            {
+              "name": "progress",
+              "type": "string"
+            },
+            {
+              "name": "status",
+              "type": "string"
+            },
+            {
+              "name": "critical",
+              "type": "string"
+            },
+            {
+              "name": "blocker",
+              "type": "string"
+            },
+            {
+              "name": "milestone",
+              "type": "string"
+            },
+            {
+              "name": "batch",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "f996f00a-bb93-4af6-b913-dd0a2d2b76a3",
+      "name": "Create Tasks",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1840,
+        128
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "pmd_milestones",
+        "columns": {
+          "column": [
+            {
+              "name": "name",
+              "type": "string"
+            },
+            {
+              "name": "baseline",
+              "type": "string"
+            },
+            {
+              "name": "forecast",
+              "type": "string"
+            },
+            {
+              "name": "depends_on",
+              "type": "string"
+            },
+            {
+              "name": "status",
+              "type": "string"
+            },
+            {
+              "name": "batch",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "49ed9300-65ba-4c9b-ab19-b6fe7abd6ed0",
+      "name": "Create Milestones",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2064,
+        128
+      ],
+      "executeOnce": true
     }
   ],
   "connections": {
@@ -951,7 +1120,7 @@
       "main": [
         [
           {
-            "node": "Check RAID Log",
+            "node": "Create Project",
             "type": "main",
             "index": 0
           }
@@ -1044,6 +1213,39 @@
           }
         ]
       ]
+    },
+    "Create Project": {
+      "main": [
+        [
+          {
+            "node": "Create Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Tasks": {
+      "main": [
+        [
+          {
+            "node": "Create Milestones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Milestones": {
+      "main": [
+        [
+          {
+            "node": "Check RAID Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -1060,9 +1262,12 @@
         "Create Action Log",
         "Create Intake Log",
         "Create Retro Feedback",
-        "Create Milestone Snapshot"
+        "Create Milestone Snapshot",
+        "Create Project",
+        "Create Tasks",
+        "Create Milestones"
       ],
-      "description": "Creates the 6 pmd_ data tables if they do not exist yet"
+      "description": "Creates the 9 pmd_ data tables if they do not exist yet"
     },
     {
       "id": "10ff653f-848e-4407-96d3-f2ac25d95946",
