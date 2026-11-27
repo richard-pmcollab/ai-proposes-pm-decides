@@ -9,6 +9,15 @@ This is the only install guide for this repo. It's written for people who have *
 | **n8n Cloud on a paid plan**, or **n8n on your own computer/server** | **Quick install:** one command does the setup | about 15 min |
 | **n8n Cloud free trial** (n8n's API isn't included in the trial) | **Manual install:** a few more clicks | about 45 min |
 
+**What each n8n plan includes** (from n8n's [API docs](https://docs.n8n.io/api/) and [pricing page](https://n8n.io/pricing/), checked November 2026):
+
+| | Free trial | Cloud Starter, Pro, Enterprise | Self-hosted (free Community edition) |
+|---|---|---|---|
+| **n8n API**: needed for the quick install | ❌ Not included | ✅ | ✅ All editions |
+| **Instance-level MCP**: needed to run the agents from Claude Code ([`inputs/`](inputs/README.md)) | Not stated by n8n | ✅ | Not stated by n8n |
+
+"Not stated" means: look under **Settings → Instance-level MCP** in your n8n. If it isn't there, you can still use every agent; you paste your inputs into the forms yourself. The lowest-cost long-term option is free self-hosting (see [Running n8n on your own computer](#running-n8n-on-your-own-computer)).
+
 **Using Claude Code?** Open this folder in Claude Code and type **"install the PM agents"**. Claude walks you through whichever path fits (see [Install with an AI assistant](#install-with-an-ai-assistant)).
 
 ---

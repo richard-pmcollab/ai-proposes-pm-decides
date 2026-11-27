@@ -154,13 +154,17 @@ async function main() {
     const dup = existing.find(x => x.name === name && !x.isArchived);
     if (dup) { c.info('"' + name + '" already exists, skipped (rename or archive it to reinstall)'); report.push({ folder: f, name, id: dup.id, status: 'existing' }); continue; }
     if (dry) { c.info('[dry run] would import "' + name + '"'); continue; }
-    const body = { name, nodes: wf.nodes, connections: wf.connections, settings: { executionOrder: 'v1' } };
+    // availableInMCP lets Claude Code run the agent later ("run the PM agents on my inputs").
+    const body = { name, nodes: wf.nodes, connections: wf.connections, settings: { executionOrder: 'v1', availableInMCP: true } };
     if (wf.nodeGroups) body.nodeGroups = wf.nodeGroups;
     let created;
     try { created = await api('POST', '/workflows', body); }
     catch (e) {
-      if (body.nodeGroups && e.status === 400) { delete body.nodeGroups; created = await api('POST', '/workflows', body); }
-      else throw e;
+      // Older n8n versions reject fields they don't know. Retry with the plain workflow.
+      if (e.status !== 400) throw e;
+      delete body.nodeGroups; body.settings = { executionOrder: 'v1' };
+      created = await api('POST', '/workflows', body);
+      c.warn('"' + name + '": imported without canvas groups or MCP access (this n8n version does not accept them).');
     }
     c.ok('Imported "' + name + '"');
     report.push({ folder: f, name, id: created.id, url: url + '/workflow/' + created.id, status: 'imported' });

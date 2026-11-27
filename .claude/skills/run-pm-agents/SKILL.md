@@ -32,7 +32,7 @@ If they are missing, take the PM through this, one step at a time:
    ```
    Then they restart Claude Code, run `/mcp`, choose **n8n** and sign in.
 
-If n8n doesn't offer **Instance-level MCP**, you can't run the agents for them. Use the manual route in `inputs/README.md` instead: you check the file, and they paste each section into the agent forms.
+n8n lists Instance-level MCP for Cloud Starter, Pro and Enterprise. For the free trial and self-hosted n8n it isn't stated, so check the menu. If n8n doesn't offer **Instance-level MCP**, you can't run the agents for them. Use the manual route in `inputs/README.md` instead: you check the file, and they paste each section into the agent forms.
 
 ## Step 1: Get the inputs into `inputs/my-project/pm-inputs.md`
 

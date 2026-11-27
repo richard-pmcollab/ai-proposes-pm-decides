@@ -79,7 +79,7 @@ Gemini's free tier allows about 5 AI requests a minute and a daily cap. The agen
 
 ```
 INSTALL.md                  the install guide (quick and manual paths)
-installer/                  one-command installer (node installer/install.mjs)
+installer/                  one-command installer (node installer/install.mjs), plus an offline self-test (node installer/selftest.mjs)
 .claude/skills/             Claude Code skills: "install the PM agents", "run the PM agents on my inputs"
 inputs/                     one page for your own project, a checker, and questions for your team
 00-setup/                   data tables + demo data (the installer does this for you)

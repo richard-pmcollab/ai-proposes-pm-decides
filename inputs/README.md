@@ -42,7 +42,7 @@ Leave a section empty to skip its agent. While `pmd_tasks` and `pmd_milestones` 
 - **Privacy.** Put real client, vendor and colleague names under *Privacy check* and use code names everywhere else. The checker refuses to continue while a listed name appears anywhere else in the file. The free Gemini tier may use what you send it to improve Google's products.
 - **AI limit.** The free Gemini tier allows about 20 requests a day, and a full run uses about 13. The checker shows the total before you start.
 - **Approvals stay yours.** Claude starts the agents, but only you can click **Review and decide**.
-- **What you need first.** The agents must be installed ([`INSTALL.md`](../INSTALL.md)), and n8n's MCP connector must be connected to Claude Code. The skill walks you through connecting it. It needs n8n's **Settings → Instance-level MCP**.
+- **What you need first.** The agents must be installed ([`INSTALL.md`](../INSTALL.md)), and n8n's MCP connector must be connected to Claude Code. The skill walks you through connecting it. It needs n8n's **Settings → Instance-level MCP**, which n8n lists for Cloud Starter, Pro and Enterprise. For the free trial and self-hosted n8n, check whether that menu is there ([which plan includes what](../INSTALL.md#choose-your-path)).
 
 ## Without Claude Code
 
