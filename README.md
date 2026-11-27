@@ -67,7 +67,7 @@ flowchart LR
 
 ## What you need
 
-- A free **n8n Cloud** trial (or your own n8n), a free **Google Gemini** API key, and a **Microsoft Outlook / Hotmail** account.
+- **n8n**: try it on the n8n Cloud free trial, then keep it on a paid Cloud plan or run it yourself for free ([which plan includes what](INSTALL.md#choose-your-path)). Plus a free **Google Gemini** API key and a **Microsoft Outlook / Hotmail** account.
 - **Node.js** on your computer for the one-command installer. The manual install needs only a web browser.
 - **Quick install** (paid n8n Cloud or self-hosted): about 15 minutes with the one-command installer. **Manual install** (n8n Cloud free trial): about 45 minutes. Both are in **[INSTALL.md](INSTALL.md)**.
 
@@ -116,6 +116,7 @@ Each agent folder has a `workflow.json` (the file you import into n8n), a README
 ---
 
 **Built by [Casper Richard Roy](https://github.com/richard-pmcollab)**, Senior Program Manager (PMP), working on agentic AI for project delivery.
+Designed, tested and documented by me; built with help from Claude Code.
 If this helps your team, ⭐ the repo and tell me what you'd add.
 
 MIT License

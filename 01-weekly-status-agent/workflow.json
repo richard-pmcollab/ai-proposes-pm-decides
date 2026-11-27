@@ -84,7 +84,6 @@
         448
       ],
       "parameters": {
-        "modelName": "models/gemini-3-flash-preview",
         "options": {
           "temperature": 0.2
         }
